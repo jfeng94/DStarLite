@@ -28,7 +28,7 @@ Tells us if the cell is blocked, open, or unknown
 #####Cell ** map
 a 2D array of cells, corresponding to the locations on the field.
 
-######float xmin, ymin, xmax, ymax
+#####float xmin, ymin, xmax, ymax
 define the dimensions of the field.
 
 #####float res
