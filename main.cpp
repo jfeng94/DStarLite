@@ -13,11 +13,9 @@ int main(int argc, char** argv)
 
     Map m(xmin, ymin, xmax, ymax, res);
 
-    m.getIndex(Point(0,0));
-    m.getIndex(Point(1,0));
-    m.getIndex(Point(0,1));
-    m.getIndex(Point(-1.3,-0.3));
-    m.getIndex(Point(1.42,-0.33));
+    Point p(0,0);
+    
+    m.init(p);
 
     std::ofstream out;
     out.open("test.ppm");

@@ -2,7 +2,7 @@
 #define MAP_H
 
 #include <vector>
-#include <int.h>
+#include <limits.h>
 
 
 struct Point
@@ -39,54 +39,48 @@ struct Cell
     STATE state;
 
     // Constructors
-    Cell(float x, float y, int i, int j) 
-    {
-        p.x   = x;
-        p.y   = y;
-        xidx  = i;
-        yidx  = j;
-        dist  = INT_MAX;
-        state = UNKNOWN;
-    }
-    Cell(Point a, int i, int j)
-    {
-        p     = a;
-        xidx  = i;
-        yidx  = j;
-        dist  = INT_MAX;
-        state = UNKNOWN;
-    }
+    Cell(float, float, int int);
+    Cell(Point, int, int);
 };
 
 class Map
 {
     private:
         // Data members
-        std::vector<Cell> map;
-        float xmin, xmax, ymin, ymax;
-        float res;
-        int Nx, Ny;
-
+        std::vector<Cell> map;         // Occupancy grid
+        float xmin, xmax, ymin, ymax;  // World dimensions
+        float res;                     // Resolution of occupancy grid
+        int Nx, Ny;                    // X, Y dimensions of occupancy grid
+            
+        // Private functions
+        Point getIndex(Point);         // Function that reports where a 
+                                       // given point snas to on the 
+                                       // occupancy grid
+         
     public:
         // Constructor
         Map(float, float, float, float, float);
 
-        // Initialize map
+        // Initialize map. Sets default distances from goal.
         void init(Point p);
-        void initHelper(int i, int j, int depth);
 
-        Point getIndex(Point);
 
-        // Mutators
-        void setState(int i, int j, Cell::STATE s) {map[Nx * j + i].state = s;}
-        void setDist (int i, int j, int d)         {map[Nx * j + i].dist  = d;}
 
-        // Accessors
+        // Update occupancy grid based on what the rangefinder sees
+        void setBlocked(Point, Point);
+        void setOpen   (Point, Point);
+
+        // Mutators: Gain access to modifying data members
+        void setState(int, int, Cell::STATE);
+        void setDist (int, int, int);
+
+        // Accessors: Get values of data members
         int getNx() {return Nx;}
         int getNy() {return Ny;}
-        Cell get(int i, int j) {return map[Nx * i + j];}
+        int getDist(int i, int j) {return map[Nx * j + i].dist;}
+        Cell get(int i, int j) {return map[Nx * j + i];}
 
-        // Operator overrider
+        // Operator overloading: Lets you print out an image of occupancy grid
         friend std::ostream& operator<<(std::ostream&, Map); 
 
 };
