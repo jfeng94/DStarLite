@@ -136,6 +136,8 @@ void Map::init(Point p)
             // Set distances
             setDist(i, j, depth);
 
+            if (maxDist < depth)
+                maxDist = depth;
             // Enqueue neighboring cells
             queue.push(idxDepth(i - 1, j - 1, depth + 1));
             queue.push(idxDepth(i - 1, j    , depth + 1));
@@ -230,6 +232,9 @@ void Map::updateDistances(Point blocked, Cell::STATE s)
             getDist(i, j) != INT_MAX && min != INT_MAX)
         {
             setDist(i, j, min + 1);
+
+            if (maxDist < min + 1)
+                maxDist = min + 1;
             // Enqueue children
             enqueueNeighbors(dependents, i, j);
         }
@@ -378,6 +383,30 @@ void Map::setDist(int i, int j, int d)
         map[Nx * j + i].dist  = d;
 }
 
+// TODO: Implement A*
+void AStar(Point p)
+{
+    // A* Should take the robot's current position, and find the
+    // occupancy grid world indices. Use getIndex.
+    
+
+    // Look at your neighbors, find the direction you need to go to
+    // The way I've written it, every point on the occupancy grid
+    // is guaranteed to have a neighbor that's 1 unit closer than
+    // the current point
+
+
+    // Store the occupancy grid coordinates into indices.
+
+
+    // After you're done transform the points back into real world
+    // coordinates with getReal(int i, int j)
+
+
+    // Store the transformed points into the path member
+
+}
+
 // Print out an image of the map we have
 std::ostream& operator<<(std::ostream& out, Map m)
 {
@@ -386,20 +415,33 @@ std::ostream& operator<<(std::ostream& out, Map m)
     {
         for (int i = 0; i < m.getNx(); i++)
         {
-            if (m.map[j * m.getNx() + i].state == Cell::OPEN)
+            bool ispath = false;
+            for (int k = 0; k < m.indices.size(); k++)
             {
-                out << "255 255 255\n";
+                if (m.indices[k].x == i && m.indices[k].y == j)
+                {
+                    out << "255 0 0\n";
+                    ispath = true;
+                    break;
+                }
             }
-            else if (m.map[j * m.getNx() + i].state == Cell::BLOCKED)
+            if (!ispath)
             {
-                out << "0 0 0\n";
-            }
-            else
-            {
-                int col = 10 * m.getDist(i, j);
-                col = 255 - col;
-                //std::cout << col << "\n";
-                out << col << " " << col << " " << col << "\n";
+                if (m.map[j * m.getNx() + i].state == Cell::OPEN)
+                {
+                    out << "255 255 255\n";
+                }
+                else if (m.map[j * m.getNx() + i].state == Cell::BLOCKED)
+                {
+                    out << "0 0 0\n";
+                }
+                else
+                {
+                    int col = 255 * m.getDist(i, j) / (m.getMaxDist() + 1);
+                    col = 255 - col;
+                    //std::cout << col << "\n";
+                    out << col << " " << col << " " << col << "\n";
+                }
             }
         }
     }
