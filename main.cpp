@@ -1,7 +1,8 @@
 #include "map.h"
 
 #include <fstream>
-#include <iostream>
+#include <ostream>
+#include <istream>
 
 int main(int argc, char** argv)
 {
