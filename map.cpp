@@ -229,7 +229,8 @@ void Map::updateDistances(Point blocked, Cell::STATE s)
 
         // If this cell needs to be updated
         if (min != getDist(i, j) - 1 &&
-            getDist(i, j) != INT_MAX && min != INT_MAX)
+            getDist(i, j) != INT_MAX && min != INT_MAX ||
+            getDist(i, j) != 0)
         {
             setDist(i, j, min + 1);
 

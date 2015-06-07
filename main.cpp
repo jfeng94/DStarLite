@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <ostream>
+#include <cstdlib>
 #include <istream>
 
 int main(int argc, char** argv)
