@@ -2,6 +2,8 @@
 #include <queue>
 #include <iostream>
 #include <math.h>
+#include <cmath>
+#include <limits.h>
 
 
 #include "map.h"
@@ -90,9 +92,6 @@ Point Map::getIndex(Point p)
     int i = (int) round((p.x - xmin) / res);
     int j = (int) round((p.y - ymin) / res);
 
-    //std::cout << "Index: " << i << " " << j << "\n";
-    //std::cout << map[j * Nx + i].p.x << " " << map[j * Nx + i].p.y << "\n";
-    //setState(i, j, Cell::BLOCKED);
     return Point(i, j);
 }
 
@@ -109,6 +108,7 @@ void Map::init(Point p)
 
     std::queue<idxDepth> queue;
 
+    // TODO: Refactor so it's not so fucking ugly
     queue.push(idxDepth(i - 1, j - 1, depth));
     queue.push(idxDepth(i - 1, j    , depth));
     queue.push(idxDepth(i - 1, j + 1, depth));
@@ -152,16 +152,214 @@ void Map::init(Point p)
     }
 }
 
+// Function that returns the minimum depth of neighbors surrounding a 
+// given cell
+int Map::checkNeighbors(Point idx)
+{
+    int i = idx.x;
+    int j = idx.y;
+
+    int min = INT_MAX;
+
+    // Get min
+    for (int m = j - 1; m < j + 2; m++)
+    {
+        for (int n = i - 1; n < i + 2; n++)
+        {
+            if (n >= 0 && n < Nx && m >= 0 && m < Ny &&
+                (n != i || m != j))
+                min = ((min < getDist(n, m)) ? min : getDist(n, m));
+        }
+    }
+
+    return min;
+}
+
+// Helper function that enqueues neighbors of a given occupancy grid index
+void Map::enqueueNeighbors(std::queue<Point> &q, int i, int j)
+{
+    for (int m = j - 1; m < j + 2; m++)
+    {
+        for (int n = i - 1; n < i + 2; n++)
+        {
+            if (n >= 0 && n < Nx && m >= 0 && m < Ny &&
+                (n != i || m != j))
+                q.push(Point(n,m));
+        }
+    }
+}
+
+// Call this function when blocking a cells out. It will update all the
+// cells dependent on this one. blocked is in occupancy grid space.
+void Map::updateDistances(Point blocked, Cell::STATE s)
+{
+    // Get values of indices passeed in
+    int i = blocked.x;
+    int j = blocked.y;
+    int min;
+
+    // If updated to block, set this cell's distance value to impassible
+    if (s == Cell::BLOCKED)
+        setDist(i, j, INT_MAX);
+    // Otherwise
+    else if (s == Cell::OPEN)
+    {
+        // Uh... this may be unnecessary
+        min = checkNeighbors(blocked);
+        setDist(i, j, min + 1);
+    }
+
+    // Begin updating dependent children
+    std::queue<Point> dependents;
+
+    // Enqueue children
+    enqueueNeighbors(dependents, i, j);
+
+    // Continue updating until there are no more left
+    while(dependents.size() > 0)
+    {
+        // Get this point
+        Point temp = dependents.front();
+        i = temp.x;
+        j = temp.y;
+
+        min = checkNeighbors(temp); 
+
+        // If this cell needs to be updated
+        if (min != getDist(i, j) - 1 &&
+            getDist(i, j) != INT_MAX && min != INT_MAX)
+        {
+            setDist(i, j, min + 1);
+            // Enqueue children
+            enqueueNeighbors(dependents, i, j);
+        }
+
+        // Dequeue and move on
+        dependents.pop();
+    }
+}
+
+// Simple implementation of Bresenham's Line Algorithm to return
+// a vector of points.
+std::vector<Point> Map::lineAlgorithm(Point start, Point end)
+{
+    // Result vector
+    std::vector<Point> line;
+
+    // Get positions out of input
+    int x0 = start.x;
+    int y0 = start.y;
+    int x1 = end.x;
+    int y1 = end.y;
+
+    // How far line will move in x direction
+    float dx = x1 - x0;
+
+    // How far line will move in y direction
+    float dy = y1 - y0;
+
+    // Accumulative error of pixellation
+    float error = 0;
+
+    // Sign of movement in x,y directions
+    int xdir = ((x0 < x1) ? 1 : -1); 
+    int ydir = ((y0 < y1) ? 1 : -1);
+
+    // If not a vertical line
+    if (dx != 0)
+    {
+        // How much error we accumulate by moving in the x direction
+        float derr = std::abs((double) dy / dx);
+
+        // Start with first y val
+        int y = y0;
+
+        // Get line starting from x0 to x1
+        for (int x = x0; x != x1; x += xdir)
+        {
+            // Store point
+            line.push_back(Point(x, y));
+
+            // Update accumulated error
+            error += derr;
+
+            // If error rounds up
+            while (error >= 0.5)
+            {
+                // Store point
+                line.push_back(Point(x,y));
+
+                // Move in the y direction
+                y += ydir;
+
+                // Error is now resolved.
+                error = error - 1;
+            }
+        }
+    }
+    // Vertical line case. Nothing much to see here
+    else
+    {
+        for (int y = y0; y != y1; y += ydir)
+        {
+            line.push_back(Point(x0, y));
+        }
+    }
+    return line;
+}
+
+// Helper function that handles updating a line of cells to open
+void Map::lineStates(std::vector<Point> points)
+{
+    int x, y;
+    for (int i = 0; i < points.size(); i++)
+    {
+        x = points[i].x;
+        y = points[i].y;
+        if(x >= 0 && x < Nx &&
+           y >= 0 && y < Ny)
+            setState(x, y, Cell::OPEN);
+    }
+}
+
+// Takes the start point of a ray and the end point of a ray and sets all
+// points in between as unblocked and sets destination as blocked.
 void Map::setBlocked(Point src, Point dst)
 {
+    // Get occupancy grid indices
+    Point start = getIndex(src);
+    Point end   = getIndex(dst);
 
+    // Get the line from src to dst
+    std::vector<Point> points = lineAlgorithm(start, end);
+    
+    // Update states in the line
+    lineStates(points);
 
+    // Set the end to blocked
+    setState(end.x, end.y, Cell::BLOCKED);
+
+    // Update the distances
+    updateDistances(end, Cell::BLOCKED);
 }
 
 
+// Takes the start point of a ray and the end point of a ray and sets all
+// points in between as unblocked and sets destination as open.
 void Map::setOpen(Point src, Point dst)
 {
+    // Get occupancy grid indices
+    Point start = getIndex(src);
+    Point end   = getIndex(dst);
 
+    // Get the line from src to dst
+    std::vector<Point> points = lineAlgorithm(start, end);
+
+    // Update states in the line
+    lineStates(points);
+
+    // Update the distances
+    updateDistances(end, Cell::OPEN);
 }
 
 // Mutator function that allows user to set state at a cell
@@ -183,22 +381,26 @@ void Map::setDist(int i, int j, int d)
 // Print out an image of the map we have
 std::ostream& operator<<(std::ostream& out, Map m)
 {
-    std::cout << m.map.size();
     out << "P3\n" << m.getNx() << " " << m.getNy() << "\n255\n";
-    for (int i = 0; i < m.map.size(); i++)
+    for (int j = m.getNy() - 1; j >= 0; j--)
     {
-        if (m.map[i].state == Cell::OPEN)
+        for (int i = 0; i < m.getNx(); i++)
         {
-            out << "255 255 255\n";
-        }
-        else if (m.map[i].state == Cell::BLOCKED)
-        {
-            out << "0 0 0\n";
-        }
-        else
-        {
-            //std::cout << m.getDist(i / m.getNx(), i % m.getNx()) << "\n";
-            out << "200 200 200" << "\n";
+            if (m.map[j * m.getNx() + i].state == Cell::OPEN)
+            {
+                out << "255 255 255\n";
+            }
+            else if (m.map[j * m.getNx() + i].state == Cell::BLOCKED)
+            {
+                out << "0 0 0\n";
+            }
+            else
+            {
+                int col = 10 * m.getDist(i, j);
+                col = 255 - col;
+                //std::cout << col << "\n";
+                out << col << " " << col << " " << col << "\n";
+            }
         }
     }
     return out;

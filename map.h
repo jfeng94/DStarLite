@@ -2,6 +2,7 @@
 #define MAP_H
 
 #include <vector>
+#include <queue>
 #include <limits.h>
 
 
@@ -39,7 +40,7 @@ struct Cell
     STATE state;
 
     // Constructors
-    Cell(float, float, int int);
+    Cell(float, float, int, int);
     Cell(Point, int, int);
 };
 
@@ -52,10 +53,15 @@ class Map
         float res;                     // Resolution of occupancy grid
         int Nx, Ny;                    // X, Y dimensions of occupancy grid
             
-        // Private functions
+        // Private functions: Should never be needed outside the class
         Point getIndex(Point);         // Function that reports where a 
                                        // given point snas to on the 
                                        // occupancy grid
+        std::vector<Point> lineAlgorithm(Point, Point); // Quick implementation
+                                                        // of Bresenham's Line
+                                                        // Algorithm
+        void enqueueNeighbors(std::queue<Point> &, int, int);
+        void lineStates(std::vector<Point>);
          
     public:
         // Constructor
@@ -69,6 +75,8 @@ class Map
         // Update occupancy grid based on what the rangefinder sees
         void setBlocked(Point, Point);
         void setOpen   (Point, Point);
+        void updateDistances(Point, Cell::STATE);
+        int  checkNeighbors(Point);
 
         // Mutators: Gain access to modifying data members
         void setState(int, int, Cell::STATE);

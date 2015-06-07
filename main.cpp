@@ -17,6 +17,17 @@ int main(int argc, char** argv)
     
     m.init(p);
 
+    m.setOpen(Point(0,0), Point(1.5,1.5));
+    m.setBlocked(Point(0,0), Point(-1.0, 0.56));
+    m.setBlocked(Point(0,0), Point(-1.0, 0.66));
+    m.setBlocked(Point(0,0), Point(-1.0, 0.76));
+    m.setBlocked(Point(0,0), Point(-1.0, 0.86));
+    m.setBlocked(Point(0,0), Point(-1.0, 0.96));
+    m.setBlocked(Point(0,0), Point(-0.90, 0.96));
+    m.setBlocked(Point(0,0), Point(-0.80, 0.96));
+    m.setBlocked(Point(0,0), Point(-0.70, 0.96));
+    m.setBlocked(Point(0,0), Point(-0.60, 0.96));
+    m.setBlocked(Point(0,0), Point(-0.50, 0.96));
     std::ofstream out;
     out.open("test.ppm");
 
