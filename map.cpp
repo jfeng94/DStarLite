@@ -218,7 +218,6 @@ void Map::recalculate()
 
     // Place goal into queue.
     std::queue<idxDepth> queue;
-    setDist(i, j, depth);
     queue.push(idxDepth(i, j, depth));
 
     // While there are changes pending
@@ -231,25 +230,30 @@ void Map::recalculate()
         j     = temp.y;
         depth = temp.depth; 
 
+        //std::cout << "Checking " << i << " " << j << " with depth " << depth << "\n";
         // Check if this position is eligible for update
         if (i >= 0 && i < Nx && j >= 0 && j < Ny &&
             (depth < getDist(i, j) || getDist(i, j) == -1) &&
             getDist(i, j) != INT_MAX)
         {
+            //std::cout << "Is valid! Setting dist.\n";
             setDist(i, j, depth);
 
             // Update maxDist
             if (maxDist < depth)
                 maxDist = depth;
                 
+            //std::cout << "Check neighboring cells...\n";
             // Enqueue neighboring cells
             for (int n = j - 1; n < j + 2; ++n)
             {
-                for (int m = i - 1; m > i + 2; ++m)
+                for (int m = i - 1; m < i + 2; ++m)
                 {
+                    //std::cout << "Cell: " << m << " " << n << "\n";
                     // Check for valid indices && not blocked
                     if(m >= 0 && m < Nx && n >= 0 && n < Ny)
                     {
+                        //std::cout << "Looks okay. Pushing in with depth " << depth + 1 << "\n";
                         queue.push(idxDepth(m, n, depth + 1));
                     }
                 }
@@ -486,7 +490,8 @@ void Map::setBlocked(Point src, Point dst)
     setState(end.x, end.y, Cell::BLOCKED);
 
     // Update the distances
-    updateDistances(end, Cell::BLOCKED);
+    recalculate();
+    //updateDistances(end, Cell::BLOCKED);
 }
 
 
@@ -505,7 +510,8 @@ void Map::setOpen(Point src, Point dst)
     lineStates(points);
 
     // Update the distances
-    updateDistances(end, Cell::OPEN);
+    recalculate();
+    //updateDistances(end, Cell::OPEN);
 }
 
 // Mutator function that allows user to set state at a cell
@@ -513,7 +519,11 @@ void Map::setState(int i, int j, Cell::STATE s)
 {
     if (i >= 0 && i < Nx &&
         j >= 0 && j < Nx)
+    {
         map[Nx * j + i].state = s;
+        if(s == Cell::BLOCKED)
+            setDist(i, j, INT_MAX);
+    }
 }
 
 // Mutator function that allows user to set distance at a cell
