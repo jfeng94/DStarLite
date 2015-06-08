@@ -26,8 +26,15 @@ int main(int argc, char ** argv)
     m.setBlocked(Point(0,0), Point(-0.6, 0.96));
     m.setBlocked(Point(0,0), Point(-0.5, 0.96));
 
-    Point end(-1, 0);
+    Point end(-1.9, 1.9);
     m.AStar(end);
+    
+    std::vector<Point> path = m.getPath();
+
+    for (int i = 0; i < path.size(); ++i)
+    {
+        std::cout << path[i].x << " " << path[i].y << "\n";
+    }
     std::ofstream out;
     out.open("test.ppm");
     out << m;

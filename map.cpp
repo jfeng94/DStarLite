@@ -5,7 +5,7 @@
 #include <cmath>
 #include <limits.h>
 #include <float.h>
-
+#include <list>
 
 #include "map.h"
 
@@ -46,6 +46,14 @@ struct idxDepth
         parent = a.parent;
         f = a.f;
         return a;
+    }
+
+    bool operator<(idxDepth a)
+    {
+        if (f < a.f)
+            return true;
+        else
+            return false;
     }
 };
 
@@ -456,184 +464,101 @@ void Map::setDist(int i, int j, int d)
 
 void Map::AStar(Point p)
 {
-    // A* Should take the robot's current position, and find the
-    // occupancy grid world indices. Use getIndex.
-    int finished = 0;
-    printf("Initial Point: %f %f \n", p.x, p.y);
+    // Initialize open and closed list
+    std::list<idxDepth>::iterator it;
+    std::list<idxDepth> open;
+    std::list<idxDepth> closed;
 
-    indices.push_back(getIndex(p));    
+    Point idx = getIndex(p);
+    int x = idx.x;
+    int y = idx.y;
 
-    Point start_idx = getIndex(p);
-    int x = start_idx.x;
-    int y = start_idx.y;
-    std::cout << "\tInitial indices: " << x << " " << y << "\n";
-
-    std::vector<idxDepth *> open;
-    std::vector<idxDepth *> closed;
-
-    std::vector<Point> path;
-
-    path.push_back(p);
-
-    std::cout << "\tSetting up initial idxDepth...\n";
+    // Put starting node onto open list
     idxDepth * start = new idxDepth(x, y, getDist(x, y));
-    start->f = getDist(x, y); 
-    std::cout << "\tbeginning f: " << start->f << "\n";
-    open.push_back(start);
+    start->f = getDist(x, y);
 
+    open.push_back(*start);
+
+    // Free start
+    free(start);
+
+    // while open queue is not empty
     while (!open.empty())
     {
-        // Find node with least f on the open list, call it "q"
-        // Simple iteration through vector
-        float min = DBL_MAX;
-        int q_i;
+        // Sort the list so that the lowest f is first
+        open.sort();
 
-        std::cout << "Looking through open... Size " << open.size() << "\n";
-        for (int i = 0; i < open.size(); i++){
-            std::cout << "\tindex: " << i << "\tf: " << open[i]->f << "\n";
-            if (open[i]->f < min){
-                std::cout << "\t\tSetting min... " << open[i]->f << "\n";
-                min = open[i]->f;
-                q_i = i;
-            }
-        }
-
-        std::cout << "Setting new idxDepth q...\n";
-        idxDepth *q;
-        *q = *open[q_i];
+        idxDepth * q = new idxDepth();
+        *q = open.front();
         x = q->x;
         y = q->y;
-        std::cout << "\t" << q->x << " " << q->y << "\n";
-        // Pop q off open list. Use erase function.
-        std::cout << "Popping q from vector... " << q_i << " \n";
-        //open.erase(open.begin() + q_i);
-        // Generate q's 8 successors and set their parents to q
-        // Should write a helper function for this
+
+        // Pop q off the open list
+        open.pop_front();
+
         // For each successor
-        
-        // If successor is the goal, stop the search
-        for (int m = y - 1; m < y + 2; m++)
+        for (int j = y - 1; j < y + 2; j++)
         {
-            for (int n = x - 1; n < x + 2; n++)
+            for (int i = x - 1; i < x + 2; i++)
             {
-                if (m >= 0 && m < Nx && n >= 0 && m < Ny && (n != x || m != y))
+                if(i >= 0 && i < Nx && j >= 0 && j < Ny && (i != x || j != y))
                 {
-                    std::cout << "Checking successor: " << n << " " << m << "\n";
-                    idxDepth * successor;
-                    successor->parent = q;
-                    std::cout << "\tSet parent...\n";
-                    successor->x = n;
-                    successor->y = m;
-                    std::cout << "\tSet x, y values...\n";
-                    successor->depth = getDist(n, m);
-                    std::cout << "\tSet depth: " << successor->depth << "\n";
-                    if (successor->depth == 0)
+                    idxDepth * s = new idxDepth(i, j, getDist(i, j));
+                    s->parent = q;
+                    
+                    // If this is our goal
+                    if (s->x == goal_idx.x && s->y == goal_idx.y)
                     {
-                        while (successor->parent)
+                        indices.push_back(Point(s->x, s->y));
+                        idxDepth * next = s->parent;
+                        while (next)
                         {
-                            idxDepth * temporary = successor->parent;
-                            successor = temporary->parent;                        
-                            path.push_back(Point(n, m));
+                            indices.push_back(Point(next->x, next->y));
+                            next = next->parent;
+                        }
+
+                        for (int n = indices.size() - 1; n >= 0; --n)
+                        {
+                            Point real = OccupancyToReal(indices[n]);
+                            path.push_back(real);
                         }
                         return;
                     }
-                    else
-                    {
-                        successor->f = q->f + 
-                                      sqrt((successor->x - x) * (successor->x - x) +
-                                           (successor->y - y) * (successor->y - y)) +
-                                      sqrt((successor->x - goal.x) * (successor->x - goal.x) +
-                                           (successor->y - goal.y) * (successor->y - goal.y));
-                        std::cout << "\tSet f: " << successor->f << "\n";
+                    
+                    float g = getDist(q->x, q->y) + 
+                              sqrt((s->x - q->x) * (s->x - q->x) +
+                                   (s->y - q->y) * (s->y - q->y)); 
 
-                        //for (int i = 0; i < open.size(); i++){
-                        //    if (open[i]->x == successor->x && open[i]->y == successor->y){
-                        //        
-                        //    }
-                        //    if (closed[i]->x == successor->x && closed[i]->y == successor->y){
-        
-                        //    }
-                        //    else{
-                        //        std::cout << "\tPushed back.\n";
-                        //        open.push_back(successor);
-                        //    }
-                        //}
+                    float h = sqrt((goal_idx.x - s->x) * (goal_idx.x - s->x) +
+                                   (goal_idx.y - s->y) * (goal_idx.y - s->y));
+                    s->f = g + h;
+
+                    bool skip = false;
+
+                    // Check if a node with the same position as successor is
+                    // in open, with lower f value
+                    for (it = open.begin(); it != open.end(); ++it)
+                    {
+                        if(it->x == s->x && it->y == s->y && it->f < s->f)
+                            skip = true;
+                    }
+                    // Check if a node with the same position as successor is
+                    // in closed, with lower f value
+                    for (it = closed.begin(); it != closed.end(); ++it)
+                    {
+                        if(it->x == s->x && it->y == s->y && it->f < s->f)
+                            skip = true;
+                    }
+
+                    // Otherwise, add successor to open list
+                    if(!skip)
+                    {
+                        open.push_back(*s);
                     }
                 }
             }
         }
-
-        closed.push_back(q);
-        // g = q.g + dist between sucessor and q
-        
-        // h = distance from goal to successor
-
-        // f = g + h
-
-        // If a node with the same position as successor is in then open list
-        // which has a lower f than successor, skip
-
-        // If a node with the same position as successor is in closed list
-        // which has lower f than successor, skip
-
-        // Else, add node to open
-        //end
-
-        // Push q onto closed list
     }
-    
-    // A* Should take the robot's current position, and find the
-    // occupancy grid world indices. Use getIndex.
-    
-    // Look at your neighbors, find the direction you need to go to
-    // The way I've written it, every point on the occupancy grid
-    // is guaranteed to have a neighbor that's 1 unit closer than
-    // the current point
-    /*
-    path.push_back(p);
-    while (finished == 0)
-    {
-        // Get node we are examining
-        initial_p = path[path.size() - 1];
-        printf("Current Point: %f %f\n", initial_p.x, initial_p.y);
-
-        // Get occupancy coordinates
-        occupancy_p = getIndex(initial_p);
-        printf("Occupancy Point: %f %f\n", occupancy_p.x, occupancy_p.y);
-	      next_neighbor = neighborIndex(occupancy_p);
-        indices.push_back(next_neighbor);
-        printf("Next Neighbor: %f %f\n", next_neighbor.x, next_neighbor.y);
-        // Store the occupancy grid coordinates into indices.
-        neighbor_indices = OccupancyToReal(next_neighbor);
-        printf("Neighbor Real Indices: %f %f\n", neighbor_indices.x, neighbor_indices.y);
-        // After you're done transform the points back into real world
-        // coordinates with getReal(int i, int j)
-        
-
-        // Store the transformed points into the path member
-        path.push_back( neighbor_indices );
-
-        // NOTE: Make sure you go all the way until you get a node with depth = 0.
-        
-        // Store the occupancy grid coordinates into indices.
-        if (checkNeighbors(next_neighbor) == 0){
-            finished = 1;
-        }
-        else{
-            printf("Current Depth: %d\n", checkNeighbors(next_neighbor));
-        }
-
-        // After you're done transform the points back into real world
-        // coordinates with getReal(int i, int j)
-
-
-        // Store the transformed points into the path member
-
-        for (int index = 0; index < indices.size(); index++)
-        {
-            std::cout << indices[index].x << " " << indices[index].y << "\n";
-        }
-    }*/
 }
 
 // Print out an image of the map we have
