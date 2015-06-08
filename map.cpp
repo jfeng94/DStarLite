@@ -197,6 +197,70 @@ void Map::init(Point p)
     }
 }
 
+void Map::recalculate()
+{
+    // Reset all distances to -1, aside from blocked cells
+    for (int n = 0; n < Ny; ++n)
+    {
+        for (int m = 0; m < Nx; ++m)
+        {
+            if (getDist(m,n) != INT_MAX)
+            {
+                setDist(m, n, -1);
+            }
+        }
+    }
+
+    // Set goal to depth 0
+    int i = goal_idx.x;
+    int j = goal_idx.y;
+    int depth = 0;
+
+    // Place goal into queue.
+    std::queue<idxDepth> queue;
+    setDist(i, j, depth);
+    queue.push(idxDepth(i, j, depth));
+
+    // While there are changes pending
+    while (queue.size() > 0)
+    {
+        // Get the next index to consider 
+        idxDepth temp = queue.front();
+        
+        i     = temp.x;
+        j     = temp.y;
+        depth = temp.depth; 
+
+        // Check if this position is eligible for update
+        if (i >= 0 && i < Nx && j >= 0 && j < Ny &&
+            (depth < getDist(i, j) || getDist(i, j) == -1) &&
+            getDist(i, j) != INT_MAX)
+        {
+            setDist(i, j, depth);
+
+            // Update maxDist
+            if (maxDist < depth)
+                maxDist = depth;
+                
+            // Enqueue neighboring cells
+            for (int n = j - 1; n < j + 2; ++n)
+            {
+                for (int m = i - 1; m > i + 2; ++m)
+                {
+                    // Check for valid indices && not blocked
+                    if(m >= 0 && m < Nx && n >= 0 && n < Ny)
+                    {
+                        queue.push(idxDepth(m, n, depth + 1));
+                    }
+                }
+            }
+        }
+
+        // Pop off and move on
+        queue.pop();
+    }
+}
+
 // Function that returns the minimum depth of neighbors surrounding a 
 // given cell
 int Map::checkNeighbors(Point idx)

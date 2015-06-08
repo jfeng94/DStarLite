@@ -87,6 +87,7 @@ class Map
 
         // Initialize map. Sets default distances from goal.
         void init(Point p);
+        void recalculate();
 
         // Update occupancy grid based on what the rangefinder sees
         // They use real world points.
