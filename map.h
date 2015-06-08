@@ -21,7 +21,7 @@ struct Point
     Point operator- (Point p) {return Point(x + p.x, y + p.y);}
     void  operator+=(Point p) {x += p.x;}
     void  operator-=(Point p) {y += p.y;}
-    Point operator= (Point p) {x = p.x; y = p.x; return p;};
+    Point operator= (Point p) {x = p.x; y = p.y; return p;}
 };
 
 struct Cell
@@ -55,6 +55,8 @@ class Map
         float res;                     // Resolution of occupancy grid
         int Nx, Ny;                    // X, Y dimensions of occupancy grid
         int maxDist;                   // For aesthetics
+        Point goal;
+        Point goal_idx;
             
         // Private functions: Should never be needed outside the class
         Point getIndex(Point p);         // Function that reports where a 
@@ -100,6 +102,7 @@ class Map
         int getNx() {return Nx;}
         int getNy() {return Ny;}
         int getDist(int i, int j) {return map[Nx * j + i].dist;}
+        int getDist(Point p) {return map[Nx * p.y + p.x].dist;}
         Point getReal(int i, int j) {return map[Nx * j + i].p;}
         int getMaxDist() {return maxDist;}
         Cell get(int i, int j) {return map[Nx * j + i];}
