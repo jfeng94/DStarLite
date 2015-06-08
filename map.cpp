@@ -101,8 +101,6 @@ Point Map::OccupancyToReal(Point p)
     int i = (int) round;
 }
 
-=======
-
 // Set up distance mapping with the given point as the goal
 void Map::init(Point p)
 {
@@ -265,10 +263,7 @@ void Map::updateDistances(Point blocked, Cell::STATE s)
 
         // If this cell needs to be updated
         if (min != getDist(i, j) - 1 &&
-
-            getDist(i, j) != INT_MAX && min != INT_MAX)
-
-            getDist(i, j) != INT_MAX && min != INT_MAX ||
+            getDist(i, j) != INT_MAX && min != INT_MAX && 
             getDist(i, j) != 0)
 
         {
@@ -461,6 +456,7 @@ void Map::AStar(Point p)
     // Store the transformed points into the path member
     path.push_back(  real_neighbor );
 
+    // NOTE: Make sure you go all the way until you get a node with depth = 0.
 
     // Store the occupancy grid coordinates into indices.
 

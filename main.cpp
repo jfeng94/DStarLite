@@ -1,5 +1,4 @@
 #include "map.h"
-<<<<<<< HEAD
 #include "sensor_msgs/LaserScan.h"
 #include "nav_msgs/Odometry.h"
 #include "geometry_msgs/Twist.h"
@@ -76,14 +75,6 @@ bool OdomWatcher::get_pose_estimate( double *x )
 	return valid_opose;
 }
 
-=======
-
-#include <fstream>
-#include <ostream>
-#include <cstdlib>
-#include <istream>
-
->>>>>>> bb024844c8423d63a5856551e925d436f508727b
 int main(int argc, char** argv)
 {
     float xmin = atof(argv[1]);
@@ -97,7 +88,6 @@ int main(int argc, char** argv)
     Point p(0,0);
     
     m.init(p);
-<<<<<<< HEAD
 	safe_to_move = true;
 	ros::init (argc, argv, "Oscar", ros::init_options::AnonymousName );
 	ros::NodeHandle nh;
@@ -107,13 +97,13 @@ int main(int argc, char** argv)
 	OdomWatcher pose_watcher( nh );
     // Setting open ranges 
     m.setOpen(Point(0,0), Point(1.5,1.5));
-    m.AStar(Point(0, 0), std::vector
-=======
+    
+    // Should be calling from current robot position
+    m.AStar(Point(-1.9, 1.9));
 
     // Setting open ranges 
     m.setOpen(Point(0,0), Point(1.5,1.5));
 
->>>>>>> bb024844c8423d63a5856551e925d436f508727b
     // Setting blocked ranges
     m.setBlocked(Point(0,0), Point(-1.0, 0.56));
     m.setBlocked(Point(0,0), Point(-1.0, 0.66));
