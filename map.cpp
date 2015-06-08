@@ -458,10 +458,15 @@ void Map::AStar(Point p)
 {
     // A* Should take the robot's current position, and find the
     // occupancy grid world indices. Use getIndex.
-    Point initial_p, occupancy_p, next_neighbor, neighbor_indices, real_neighbor;
     int finished = 0;
     printf("Initial Point: %f %f \n", p.x, p.y);
+
     indices.push_back(getIndex(p));    
+
+    Point start_idx = getIndex(p);
+    int x = start_idx.x;
+    int y = start_idx.y;
+    std::cout << "\tInitial indices: " << x << " " << y << "\n";
 
     std::vector<idxDepth *> open;
     std::vector<idxDepth *> closed;
@@ -469,39 +474,61 @@ void Map::AStar(Point p)
     std::vector<Point> path;
 
     path.push_back(p);
-    open.push_back(new idxDepth(p, getDist(p.x, p.y)));
+
+    std::cout << "\tSetting up initial idxDepth...\n";
+    idxDepth * start = new idxDepth(x, y, getDist(x, y));
+    start->f = getDist(x, y); 
+    std::cout << "\tbeginning f: " << start->f << "\n";
+    open.push_back(start);
 
     while (!open.empty())
     {
         // Find node with least f on the open list, call it "q"
         // Simple iteration through vector
-            float min = DBL_MAX;
-            int q_i;
-            for (int i = 0; i < open.size(); i++){
-                if (open[i]->f < min){
-                    min = open[i]->f;
-                    q_i = i;
-                }
+        float min = DBL_MAX;
+        int q_i;
+
+        std::cout << "Looking through open... Size " << open.size() << "\n";
+        for (int i = 0; i < open.size(); i++){
+            std::cout << "\tindex: " << i << "\tf: " << open[i]->f << "\n";
+            if (open[i]->f < min){
+                std::cout << "\t\tSetting min... " << open[i]->f << "\n";
+                min = open[i]->f;
+                q_i = i;
             }
-            idxDepth *q;
-            *q = *open[q_i];
+        }
+
+        std::cout << "Setting new idxDepth q...\n";
+        idxDepth *q;
+        *q = *open[q_i];
+        x = q->x;
+        y = q->y;
+        std::cout << "\t" << q->x << " " << q->y << "\n";
         // Pop q off open list. Use erase function.
-            open.erase(open.begin() + q_i - 1);
+        std::cout << "Popping q from vector... " << q_i << " \n";
+        //open.erase(open.begin() + q_i);
         // Generate q's 8 successors and set their parents to q
         // Should write a helper function for this
         // For each successor
-            
-            // If successor is the goal, stop the search
-            for (int m = q->y - 1; m < q->y + 2; m++){
-                for (int n = q->x - 1; n < q->x + 2; n++){
+        
+        // If successor is the goal, stop the search
+        for (int m = y - 1; m < y + 2; m++)
+        {
+            for (int n = x - 1; n < x + 2; n++)
+            {
+                if (m >= 0 && m < Nx && n >= 0 && m < Ny && (n != x || m != y))
+                {
+                    std::cout << "Checking successor: " << n << " " << m << "\n";
                     idxDepth * successor;
                     successor->parent = q;
+                    std::cout << "\tSet parent...\n";
                     successor->x = n;
                     successor->y = m;
+                    std::cout << "\tSet x, y values...\n";
                     successor->depth = getDist(n, m);
+                    std::cout << "\tSet depth: " << successor->depth << "\n";
                     if (successor->depth == 0)
                     {
-                        return;
                         while (successor->parent)
                         {
                             idxDepth * temporary = successor->parent;
@@ -510,41 +537,46 @@ void Map::AStar(Point p)
                         }
                         return;
                     }
-                    else{
+                    else
+                    {
                         successor->f = q->f + 
-                                      sqrt((successor->x - q->x) * (successor->x - q->x) +
-                                           (successor->y - q->y) * (successor->y - q->y)) +
+                                      sqrt((successor->x - x) * (successor->x - x) +
+                                           (successor->y - y) * (successor->y - y)) +
                                       sqrt((successor->x - goal.x) * (successor->x - goal.x) +
                                            (successor->y - goal.y) * (successor->y - goal.y));
+                        std::cout << "\tSet f: " << successor->f << "\n";
 
-                        for (int i = 0; i < open.size(); i++){
-                            if (open[i]->x == successor->x && open[i]->y == successor->y){
-                                
-                            }
-                            if (closed[i]->x == successor->x && closed[i]->y == successor->y){
-            
-                            }
-                            else{
-                                open.push_back(successor);
-                            }
-                        }
+                        //for (int i = 0; i < open.size(); i++){
+                        //    if (open[i]->x == successor->x && open[i]->y == successor->y){
+                        //        
+                        //    }
+                        //    if (closed[i]->x == successor->x && closed[i]->y == successor->y){
+        
+                        //    }
+                        //    else{
+                        //        std::cout << "\tPushed back.\n";
+                        //        open.push_back(successor);
+                        //    }
+                        //}
                     }
                 }
             }
-            closed.push_back(q);
-            // g = q.g + dist between sucessor and q
-            
-            // h = distance from goal to successor
+        }
 
-            // f = g + h
+        closed.push_back(q);
+        // g = q.g + dist between sucessor and q
+        
+        // h = distance from goal to successor
 
-            // If a node with the same position as successor is in then open list
-            // which has a lower f than successor, skip
+        // f = g + h
 
-            // If a node with the same position as successor is in closed list
-            // which has lower f than successor, skip
+        // If a node with the same position as successor is in then open list
+        // which has a lower f than successor, skip
 
-            // Else, add node to open
+        // If a node with the same position as successor is in closed list
+        // which has lower f than successor, skip
+
+        // Else, add node to open
         //end
 
         // Push q onto closed list
