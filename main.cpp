@@ -80,6 +80,9 @@ bool OdomWatcher::get_pose_estimate( double *x )
     }
     return valid_opose;
 }
+void updateMap(Map m, Point Current, double current_angle){
+   
+}
 
 int main(int argc, char** argv)
 {
@@ -90,7 +93,10 @@ int main(int argc, char** argv)
     float res  = atof(argv[5]);
     double pointing, current_pose[3];
     Map m(xmin, ymin, xmax, ymax, res);
-
+    double min_reach_err = .2;
+    double min_angle_err = .1;
+    double forward_speed = .3;
+    double turning_rate = .5;
     Point p(1.5,1.5);
     
     m.init(p);
@@ -101,106 +107,74 @@ int main(int argc, char** argv)
     ros::Publisher action = nh.advertise<geometry_msgs::Twist>( "cmd_vel", 1);
     ros::Subscriber lmssub = nh.subscribe( "scan", 10, &laser_cb );
     OdomWatcher pose_watcher( nh );
-    // Setting open ranges 
-    /*
-    m.setOpen(Point(0,0), Point(1.5,1.5));
-    
-    // Should be calling from current robot position
-    m.AStar(Point(-1.9, 1.9));
-    // Setting open ranges 
-    m.setOpen(Point(0,0), Point(1.5,1.5));
-    // Setting blocked ranges
-    
-    m.setBlocked(Point(0,0), Point(-1.0, 0.56));
-    m.setBlocked(Point(0,0), Point(-1.0, 0.66));
-    m.setBlocked(Point(0,0), Point(-1.0, 0.76));
-    m.setBlocked(Point(0,0), Point(-1.0, 0.86));
-    m.setBlocked(Point(0,0), Point(-1.0, 0.96));
-    m.setBlocked(Point(0,0), Point(-0.9, 0.96));
-    m.setBlocked(Point(0,0), Point(-0.8, 0.96));
-    m.setBlocked(Point(0,0), Point(-0.7, 0.96));
-    m.setBlocked(Point(0,0), Point(-0.6, 0.96));
-    m.setBlocked(Point(0,0), Point(-0.5, 0.96));
-    */
+   
     Point Current;
     double Pointing;
+    double angle_diff;
     Current.x = current_pose[0];
     Current.y = current_pose[1];
-ros::Rate rate( 30. );
+    int current_index = 0;
+ros::Rate rate( 15. );
 int k = 0;
+std::ofstream out;
 while(ros::ok()){
     // Example of how to print out occupancy matrix
-    std::ofstream out;
-geometry_msgs::Twist mot;
-    printf("%d\n", scan_number);
-    //for ( int i = 0; i < scan_number; i++){
-   // for (int i= 0; i < 300; i++){
-   for (int i = 0; i <386; i++){
-    Pointing = IndexToAngle(i, scan_number, min_angle, max_angle) - current_pose[2];
-    // All readings are open
-     
-      if ( rangeholder[i] > max_range){
+    pose_watcher.get_pose_estimate( current_pose );
+    geometry_msgs::Twist mot;
+   for (int i = 0; i <scan_number; i = i+8){
+    Pointing = IndexToAngle(i, scan_number, min_angle, max_angle) + current_pose[2];
+    // If the readings have not been initialized yet, do nothing 
+    if (Pointing != Pointing){
+        printf("NAN!!!!!\n");
+    }
+    // If the readings HAVE been initialized, include them into the map
+      else if ( rangeholder[i] > max_range){
             Point range_edge;
             range_edge.x = max_range * cos( Pointing );
             range_edge.y = max_range * sin( Pointing );
-            printf("Pointing Beyond %d, %f\n", i, Pointing);
-            printf("Range: %f\n", rangeholder[i]);
             m.setOpen(Current, range_edge);
-            out.open("test.ppm");
-            out << m;
-            out.close();
+            
        }
        else {
             Point range_edge;
             range_edge.x = rangeholder[i] * cos( Pointing );
             range_edge.y = rangeholder[i] * sin( Pointing );
-            printf("Pointing Within: %d, %f\n", i, Pointing);
-            printf("Range: %f\n", rangeholder[i]);
             m.setBlocked(Current, range_edge);
-            out.open("test.ppm");
-            out << m;
-            out.close();
             }
-            }
-    //   }
-    /*
-   }
-   printf("Paused\n");
-    for (int i = 300; i < scan_number; i++){
-     Pointing = IndexToAngle(i, scan_number, min_angle, max_angle) - current_pose[2];
-      if ( rangeholder[i] > max_range){
-            Point range_edge;
-            range_edge.x = max_range * cos( Pointing );
-            range_edge.y = max_range * sin( Pointing );
-            printf("Pointing Beyond %d, %f\n", i, Pointing);
-            m.setOpen(Current, range_edge);
-            out.open("test.ppm");
-            out << m;
-            out.close();
-       }
-       else if ( rangeholder[i] < max_range){
-            Point range_edge;
-            range_edge.x = rangeholder[i] * cos( Pointing );
-            range_edge.y = rangeholder[i] * sin( Pointing );
-            printf("Pointing Within: %d, %f\n", i, Pointing);
-            m.setBlocked(Current, range_edge);
-            out.open("test.ppm");
-            out << m;
-            out.close();
-    //   }
-    }*/
+       } 
 
+
+    m.AStar(Current);
+if (safe_to_move){
+	angle_diff = atan2( m.path[current_index].y - current_pose[1], m.path[current_index].x - current_pose[0] ) - current_pose[2];
+if (sqrt( (m.path[current_index].x - current_pose[0])*(m.path[current_index].x - current_pose[0]) + (m.path[current_index].y - current_pose[1])*(m.path[current_index].y - current_pose[1]) ) < min_reach_err) {
+				std::cout << "Reached waypoint " << current_index << std::endl;
+				current_index = (current_index+1) % m.path.size();
+			} else if (fabs( angle_diff ) > min_angle_err) {
+
+				if (angle_diff > 0) {
+					mot.angular.z = turning_rate;
+				} else {
+					mot.angular.z = -turning_rate;
+				}
+
+			} else {
+				mot.linear.x = forward_speed;
+			}
+}
     
     action.publish( mot ); 
     ros::spinOnce();
     rate.sleep();
     k++;
-    if (k > 5){
+    if (k > 100){
         break;
     }
 
 }
 
-
+            out.open("test.ppm");
+            out << m;
+            out.close();
     return 0;
 }
