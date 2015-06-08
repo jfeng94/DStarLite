@@ -5,7 +5,8 @@
 #include <cmath>
 #include <limits.h>
 #include <float.h>
-#include <list>
+#include <stdio.h>
+
 
 #include "map.h"
 
@@ -46,14 +47,6 @@ struct idxDepth
         parent = a.parent;
         f = a.f;
         return a;
-    }
-
-    bool operator<(idxDepth a)
-    {
-        if (f < a.f)
-            return true;
-        else
-            return false;
     }
 };
 
@@ -276,22 +269,23 @@ void Map::updateDistances(Point blocked, Cell::STATE s)
     int min;
 
     // If updated to block, set this cell's distance value to impassible
-    if (s == Cell::BLOCKED)
+    if (s == Cell::BLOCKED){
         setDist(i, j, INT_MAX);
+        }
     // Otherwise
     else if (s == Cell::OPEN)
     {
         // Uh... this may be unnecessary
+        /*
         min = checkNeighbors(blocked);
-        setDist(i, j, min + 1);
-    }
+        setDist(i, j, min + 1);*/
+        }
 
     // Begin updating dependent children
     std::queue<Point> dependents;
 
     // Enqueue children
     enqueueNeighbors(dependents, i, j);
-
     // Continue updating until there are no more left
     while(dependents.size() > 0)
     {
@@ -411,7 +405,7 @@ void Map::setBlocked(Point src, Point dst)
     // Get occupancy grid indices
     Point start = getIndex(src);
     Point end   = getIndex(dst);
-
+if (end.x >= 0 && end.x < Nx && end.y >=0 && end.y < Ny){
     // Get the line from src to dst
     std::vector<Point> points = lineAlgorithm(start, end);
     
@@ -423,8 +417,8 @@ void Map::setBlocked(Point src, Point dst)
 
     // Update the distances
     updateDistances(end, Cell::BLOCKED);
+    }
 }
-
 
 // Takes the start point of a ray and the end point of a ray and sets all
 // points in between as unblocked and sets destination as open.
@@ -433,7 +427,7 @@ void Map::setOpen(Point src, Point dst)
     // Get occupancy grid indices
     Point start = getIndex(src);
     Point end   = getIndex(dst);
-
+if (end.x >= 0 && end.x < Nx && end.y >=0 && end.y < Ny){
     // Get the line from src to dst
     std::vector<Point> points = lineAlgorithm(start, end);
 
@@ -442,6 +436,7 @@ void Map::setOpen(Point src, Point dst)
 
     // Update the distances
     updateDistances(end, Cell::OPEN);
+    }
 }
 
 // Mutator function that allows user to set state at a cell
@@ -464,101 +459,152 @@ void Map::setDist(int i, int j, int d)
 
 void Map::AStar(Point p)
 {
-    // Initialize open and closed list
-    std::list<idxDepth>::iterator it;
-    std::list<idxDepth> open;
-    std::list<idxDepth> closed;
+    // A* Should take the robot's current position, and find the
+    // occupancy grid world indices. Use getIndex.
+    Point initial_p, occupancy_p, next_neighbor, neighbor_indices, real_neighbor;
+    int finished = 0;
+    printf("Initial Point: %f %f \n", p.x, p.y);
+    indices.push_back(getIndex(p));    
 
-    Point idx = getIndex(p);
-    int x = idx.x;
-    int y = idx.y;
+    std::vector<idxDepth *> open;
+    std::vector<idxDepth *> closed;
 
-    // Put starting node onto open list
-    idxDepth * start = new idxDepth(x, y, getDist(x, y));
-    start->f = getDist(x, y);
+    std::vector<Point> path;
 
-    open.push_back(*start);
+    path.push_back(p);
+    open.push_back(new idxDepth(p, getDist(p.x, p.y)));
 
-    // Free start
-    free(start);
-
-    // while open queue is not empty
     while (!open.empty())
     {
-        // Sort the list so that the lowest f is first
-        open.sort();
-
-        idxDepth * q = new idxDepth();
-        *q = open.front();
-        x = q->x;
-        y = q->y;
-
-        // Pop q off the open list
-        open.pop_front();
-
+        // Find node with least f on the open list, call it "q"
+        // Simple iteration through vector
+            float min = DBL_MAX;
+            int q_i;
+            for (int i = 0; i < open.size(); i++){
+                if (open[i]->f < min){
+                    min = open[i]->f;
+                    q_i = i;
+                }
+            }
+            idxDepth *q;
+            *q = *open[q_i];
+        // Pop q off open list. Use erase function.
+            open.erase(open.begin() + q_i - 1);
+        // Generate q's 8 successors and set their parents to q
+        // Should write a helper function for this
         // For each successor
-        for (int j = y - 1; j < y + 2; j++)
-        {
-            for (int i = x - 1; i < x + 2; i++)
-            {
-                if(i >= 0 && i < Nx && j >= 0 && j < Ny && (i != x || j != y))
-                {
-                    idxDepth * s = new idxDepth(i, j, getDist(i, j));
-                    s->parent = q;
-                    
-                    // If this is our goal
-                    if (s->x == goal_idx.x && s->y == goal_idx.y)
+            
+            // If successor is the goal, stop the search
+            for (int m = q->y - 1; m < q->y + 2; m++){
+                for (int n = q->x - 1; n < q->x + 2; n++){
+                    idxDepth * successor;
+                    successor->parent = q;
+                    successor->x = n;
+                    successor->y = m;
+                    successor->depth = getDist(n, m);
+                    if (successor->depth == 0)
                     {
-                        indices.push_back(Point(s->x, s->y));
-                        idxDepth * next = s->parent;
-                        while (next)
+                        return;
+                        while (successor->parent)
                         {
-                            indices.push_back(Point(next->x, next->y));
-                            next = next->parent;
-                        }
-
-                        for (int n = indices.size() - 1; n >= 0; --n)
-                        {
-                            Point real = OccupancyToReal(indices[n]);
-                            path.push_back(real);
+                            idxDepth * temporary = successor->parent;
+                            successor = temporary->parent;                        
+                            path.push_back(Point(n, m));
                         }
                         return;
                     }
-                    
-                    float g = getDist(q->x, q->y) + 
-                              sqrt((s->x - q->x) * (s->x - q->x) +
-                                   (s->y - q->y) * (s->y - q->y)); 
+                    else{
+                        successor->f = q->f + 
+                                      sqrt((successor->x - q->x) * (successor->x - q->x) +
+                                           (successor->y - q->y) * (successor->y - q->y)) +
+                                      sqrt((successor->x - goal.x) * (successor->x - goal.x) +
+                                           (successor->y - goal.y) * (successor->y - goal.y));
 
-                    float h = sqrt((goal_idx.x - s->x) * (goal_idx.x - s->x) +
-                                   (goal_idx.y - s->y) * (goal_idx.y - s->y));
-                    s->f = g + h;
-
-                    bool skip = false;
-
-                    // Check if a node with the same position as successor is
-                    // in open, with lower f value
-                    for (it = open.begin(); it != open.end(); ++it)
-                    {
-                        if(it->x == s->x && it->y == s->y && it->f < s->f)
-                            skip = true;
-                    }
-                    // Check if a node with the same position as successor is
-                    // in closed, with lower f value
-                    for (it = closed.begin(); it != closed.end(); ++it)
-                    {
-                        if(it->x == s->x && it->y == s->y && it->f < s->f)
-                            skip = true;
-                    }
-
-                    // Otherwise, add successor to open list
-                    if(!skip)
-                    {
-                        open.push_back(*s);
+                        for (int i = 0; i < open.size(); i++){
+                            if (open[i]->x == successor->x && open[i]->y == successor->y){
+                                
+                            }
+                            if (closed[i]->x == successor->x && closed[i]->y == successor->y){
+            
+                            }
+                            else{
+                                open.push_back(successor);
+                            }
+                        }
                     }
                 }
             }
-        }
+            closed.push_back(q);
+            // g = q.g + dist between sucessor and q
+            
+            // h = distance from goal to successor
+
+            // f = g + h
+
+            // If a node with the same position as successor is in then open list
+            // which has a lower f than successor, skip
+
+            // If a node with the same position as successor is in closed list
+            // which has lower f than successor, skip
+
+            // Else, add node to open
+        //end
+
+        // Push q onto closed list
     }
+    
+    // A* Should take the robot's current position, and find the
+    // occupancy grid world indices. Use getIndex.
+    
+    // Look at your neighbors, find the direction you need to go to
+    // The way I've written it, every point on the occupancy grid
+    // is guaranteed to have a neighbor that's 1 unit closer than
+    // the current point
+    /*
+    path.push_back(p);
+    while (finished == 0)
+    {
+        // Get node we are examining
+        initial_p = path[path.size() - 1];
+        printf("Current Point: %f %f\n", initial_p.x, initial_p.y);
+
+        // Get occupancy coordinates
+        occupancy_p = getIndex(initial_p);
+        printf("Occupancy Point: %f %f\n", occupancy_p.x, occupancy_p.y);
+	      next_neighbor = neighborIndex(occupancy_p);
+        indices.push_back(next_neighbor);
+        printf("Next Neighbor: %f %f\n", next_neighbor.x, next_neighbor.y);
+        // Store the occupancy grid coordinates into indices.
+        neighbor_indices = OccupancyToReal(next_neighbor);
+        printf("Neighbor Real Indices: %f %f\n", neighbor_indices.x, neighbor_indices.y);
+        // After you're done transform the points back into real world
+        // coordinates with getReal(int i, int j)
+        
+
+        // Store the transformed points into the path member
+        path.push_back( neighbor_indices );
+
+        // NOTE: Make sure you go all the way until you get a node with depth = 0.
+        
+        // Store the occupancy grid coordinates into indices.
+        if (checkNeighbors(next_neighbor) == 0){
+            finished = 1;
+        }
+        else{
+            printf("Current Depth: %d\n", checkNeighbors(next_neighbor));
+        }
+
+        // After you're done transform the points back into real world
+        // coordinates with getReal(int i, int j)
+
+
+        // Store the transformed points into the path member
+
+        for (int index = 0; index < indices.size(); index++)
+        {
+            std::cout << indices[index].x << " " << indices[index].y << "\n";
+        }
+    }*/
 }
 
 // Print out an image of the map we have
