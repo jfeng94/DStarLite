@@ -57,6 +57,7 @@ class Map
         int maxDist;                   // For aesthetics
             
         // Private functions: Should never be needed outside the class
+<<<<<<< HEAD
         Point getIndex(Point p);         // Function that reports where a 
                                        // given point snas to on the 
                                        // occupancy grid
@@ -65,6 +66,11 @@ class Map
 
 	Point OccupancyToReal(Point p);
 
+=======
+        Point getIndex(Point);         // Function that reports where a 
+                                       // given point snas to on the 
+                                       // occupancy grid
+>>>>>>> bb024844c8423d63a5856551e925d436f508727b
         std::vector<Point>
             lineAlgorithm(Point, Point); // Quick implementation
                                          // of Bresenham's Line
@@ -101,7 +107,10 @@ class Map
         int getNy() {return Ny;}
         int getDist(int i, int j) {return map[Nx * j + i].dist;}
         Point getReal(int i, int j) {return map[Nx * j + i].p;}
+<<<<<<< HEAD
 
+=======
+>>>>>>> bb024844c8423d63a5856551e925d436f508727b
         int getMaxDist() {return maxDist;}
         Cell get(int i, int j) {return map[Nx * j + i];}
 

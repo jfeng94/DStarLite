@@ -95,10 +95,13 @@ Point Map::getIndex(Point p)
     return Point(i, j);
 }
 
+
 Point Map::OccupancyToReal(Point p)
 {
     int i = (int) round;
 }
+
+=======
 
 // Set up distance mapping with the given point as the goal
 void Map::init(Point p)
@@ -182,6 +185,7 @@ int Map::checkNeighbors(Point idx)
     return min;
 }
 
+
 // Function that returns the minimum depth of neighbors surrounding a 
 // given cell
 Point Map::neighborIndex(Point idx)
@@ -206,6 +210,8 @@ Point Map::neighborIndex(Point idx)
 
     return Point(x, y);
 }
+
+
 
 // Helper function that enqueues neighbors of a given occupancy grid index
 void Map::enqueueNeighbors(std::queue<Point> &q, int i, int j)
@@ -259,7 +265,12 @@ void Map::updateDistances(Point blocked, Cell::STATE s)
 
         // If this cell needs to be updated
         if (min != getDist(i, j) - 1 &&
+
             getDist(i, j) != INT_MAX && min != INT_MAX)
+
+            getDist(i, j) != INT_MAX && min != INT_MAX ||
+            getDist(i, j) != 0)
+
         {
             setDist(i, j, min + 1);
 
@@ -414,6 +425,7 @@ void Map::setDist(int i, int j, int d)
 }
 
 // TODO: Implement A*
+
 void Map::AStar(Point p)
 {
     // A* Should take the robot's current position, and find the
@@ -421,10 +433,18 @@ void Map::AStar(Point p)
     Point occupancy_p, next_neighbor, neighbor_indices, real_neighbor;
     occupancy_p = getIndex(p);
 
+
+
+    // A* Should take the robot's current position, and find the
+    // occupancy grid world indices. Use getIndex.
+    
+
+
     // Look at your neighbors, find the direction you need to go to
     // The way I've written it, every point on the occupancy grid
     // is guaranteed to have a neighbor that's 1 unit closer than
     // the current point
+
 
     next_neighbor = neighborIndex(occupancy_p);
     
@@ -440,6 +460,18 @@ void Map::AStar(Point p)
 
     // Store the transformed points into the path member
     path.push_back(  real_neighbor );
+
+
+    // Store the occupancy grid coordinates into indices.
+
+
+    // After you're done transform the points back into real world
+    // coordinates with getReal(int i, int j)
+
+
+    // Store the transformed points into the path member
+
+
 }
 
 // Print out an image of the map we have
