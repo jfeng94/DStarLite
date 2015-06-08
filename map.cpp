@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <float.h>
 #include <list>
+#include <cstdlib>
 
 #include "map.h"
 

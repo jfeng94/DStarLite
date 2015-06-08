@@ -27,7 +27,7 @@ int main(int argc, char ** argv)
     m.setBlocked(Point(0,0), Point(-0.5, 0.96));
 
     Point end(-1.9, 1.9);
-    //m.AStar(end);
+    m.AStar(end);
     
     std::vector<Point> path = m.getPath();
 
