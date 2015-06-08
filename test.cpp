@@ -26,11 +26,12 @@ int main(int argc, char ** argv)
     m.setBlocked(Point(0,0), Point(-0.6, 0.96));
     m.setBlocked(Point(0,0), Point(-0.5, 0.96));
 
-    Point end(-1.9, 1.9);
-
+    Point end(-1, 0);
+    m.AStar(end);
     std::ofstream out;
     out.open("test.ppm");
     out << m;
+
 
     return 0;
 

@@ -4,6 +4,7 @@
 #include <math.h>
 #include <cmath>
 #include <limits.h>
+#include <float.h>
 
 
 #include "map.h"
@@ -12,11 +13,28 @@
 struct idxDepth
 {
     int x, y, depth;
+    float f;
+    idxDepth *parent;
 
+    idxDepth()
+    {
+        x = 0;
+        y = 0;
+        f = FLT_MAX;
+        depth = INT_MAX;
+    }
     idxDepth(int X, int Y, int d)
     {
         x = X;
         y = Y;
+        f = FLT_MAX;
+        depth = d;
+    }
+    idxDepth(Point p, int d)
+    {
+        x = p.x;
+        y = p.y;
+        f = FLT_MAX;
         depth = d;
     }
 
@@ -25,9 +43,12 @@ struct idxDepth
         x = a.x;
         y = a.y;
         depth = a.depth;
+        parent = a.parent;
+        f = a.f;
         return a;
     }
 };
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // CELL FUNCTIONS
@@ -98,7 +119,11 @@ Point Map::getIndex(Point p)
 
 Point Map::OccupancyToReal(Point p)
 {
-    int i = (int) round;
+    int i = p.x;
+    int j = p.y;
+    float x = map[Nx * j + i].p.x;
+    float y = map[Nx * j + i].p.y;
+    return Point(x, y);
 }
 
 // Set up distance mapping with the given point as the goal
@@ -107,6 +132,10 @@ void Map::init(Point p)
     Point idx = getIndex(p);
     int i = idx.x;
     int j = idx.y;
+
+    // Set data members for goal;
+    goal = p;
+    goal_idx = Point(i, j);
     
     int depth = 0;
     setDist(i, j, depth);
@@ -198,13 +227,17 @@ Point Map::neighborIndex(Point idx)
     {
         for (int n = i - 1; n < i + 2; n++)
         {
+            std::cout << getDist(n, m) << " ";
             if (n >= 0 && n < Nx && m >= 0 && m < Ny &&
-                (n != i || m != j))
-                min = ((min < getDist(n, m)) ? min : getDist(n, m));
-		x = m;
-		y = n;
+               (n != i || m != j) && getDist(n, m) < min){
+                min = getDist(n, m);
+		            x = n;
+		            y = m;
+            }
         }
+        std::cout << "\n";
     }
+    std::cout << "\n";
 
     return Point(x, y);
 }
@@ -425,49 +458,150 @@ void Map::AStar(Point p)
 {
     // A* Should take the robot's current position, and find the
     // occupancy grid world indices. Use getIndex.
-    Point occupancy_p, next_neighbor, neighbor_indices, real_neighbor;
-    occupancy_p = getIndex(p);
+    Point initial_p, occupancy_p, next_neighbor, neighbor_indices, real_neighbor;
+    int finished = 0;
+    printf("Initial Point: %f %f \n", p.x, p.y);
+    indices.push_back(getIndex(p));    
 
+    std::vector<idxDepth *> open;
+    std::vector<idxDepth *> closed;
 
+    std::vector<Point> path;
 
+    path.push_back(p);
+    open.push_back(new idxDepth(p, getDist(p.x, p.y)));
+
+    while (!open.empty())
+    {
+        // Find node with least f on the open list, call it "q"
+        // Simple iteration through vector
+            float min = DBL_MAX;
+            int q_i;
+            for (int i = 0; i < open.size(); i++){
+                if (open[i]->f < min){
+                    min = open[i]->f;
+                    q_i = i;
+                }
+            }
+            idxDepth *q;
+            *q = *open[q_i];
+        // Pop q off open list. Use erase function.
+            open.erase(open.begin() + q_i - 1);
+        // Generate q's 8 successors and set their parents to q
+        // Should write a helper function for this
+        // For each successor
+            
+            // If successor is the goal, stop the search
+            for (int m = q->y - 1; m < q->y + 2; m++){
+                for (int n = q->x - 1; n < q->x + 2; n++){
+                    idxDepth * successor;
+                    successor->parent = q;
+                    successor->x = n;
+                    successor->y = m;
+                    successor->depth = getDist(n, m);
+                    if (successor->depth == 0)
+                    {
+                        return;
+                        while (successor->parent)
+                        {
+                            idxDepth * temporary = successor->parent;
+                            successor = temporary->parent;                        
+                            path.push_back(Point(n, m));
+                        }
+                        return;
+                    }
+                    else{
+                        successor->f = q->f + 
+                                      sqrt((successor->x - q->x) * (successor->x - q->x) +
+                                           (successor->y - q->y) * (successor->y - q->y)) +
+                                      sqrt((successor->x - goal.x) * (successor->x - goal.x) +
+                                           (successor->y - goal.y) * (successor->y - goal.y));
+
+                        for (int i = 0; i < open.size(); i++){
+                            if (open[i]->x == successor->x && open[i]->y == successor->y){
+                                
+                            }
+                            if (closed[i]->x == successor->x && closed[i]->y == successor->y){
+            
+                            }
+                            else{
+                                open.push_back(successor);
+                            }
+                        }
+                    }
+                }
+            }
+            closed.push_back(q);
+            // g = q.g + dist between sucessor and q
+            
+            // h = distance from goal to successor
+
+            // f = g + h
+
+            // If a node with the same position as successor is in then open list
+            // which has a lower f than successor, skip
+
+            // If a node with the same position as successor is in closed list
+            // which has lower f than successor, skip
+
+            // Else, add node to open
+        //end
+
+        // Push q onto closed list
+    }
+    
     // A* Should take the robot's current position, and find the
     // occupancy grid world indices. Use getIndex.
     
-
-
     // Look at your neighbors, find the direction you need to go to
     // The way I've written it, every point on the occupancy grid
     // is guaranteed to have a neighbor that's 1 unit closer than
     // the current point
+    /*
+    path.push_back(p);
+    while (finished == 0)
+    {
+        // Get node we are examining
+        initial_p = path[path.size() - 1];
+        printf("Current Point: %f %f\n", initial_p.x, initial_p.y);
+
+        // Get occupancy coordinates
+        occupancy_p = getIndex(initial_p);
+        printf("Occupancy Point: %f %f\n", occupancy_p.x, occupancy_p.y);
+	      next_neighbor = neighborIndex(occupancy_p);
+        indices.push_back(next_neighbor);
+        printf("Next Neighbor: %f %f\n", next_neighbor.x, next_neighbor.y);
+        // Store the occupancy grid coordinates into indices.
+        neighbor_indices = OccupancyToReal(next_neighbor);
+        printf("Neighbor Real Indices: %f %f\n", neighbor_indices.x, neighbor_indices.y);
+        // After you're done transform the points back into real world
+        // coordinates with getReal(int i, int j)
+        
+
+        // Store the transformed points into the path member
+        path.push_back( neighbor_indices );
+
+        // NOTE: Make sure you go all the way until you get a node with depth = 0.
+        
+        // Store the occupancy grid coordinates into indices.
+        if (checkNeighbors(next_neighbor) == 0){
+            finished = 1;
+        }
+        else{
+            printf("Current Depth: %d\n", checkNeighbors(next_neighbor));
+        }
+
+        // After you're done transform the points back into real world
+        // coordinates with getReal(int i, int j)
 
 
-    next_neighbor = neighborIndex(occupancy_p);
-    
+        // Store the transformed points into the path member
 
-    // Store the occupancy grid coordinates into indices.
-    neighbor_indices = OccupancyToReal(next_neighbor);
-    
-
-    // After you're done transform the points back into real world
-    // coordinates with getReal(int i, int j)
-    real_neighbor = getReal(neighbor_indices.x, neighbor_indices.y);
-
-
-    // Store the transformed points into the path member
-    path.push_back(  real_neighbor );
-
-    // NOTE: Make sure you go all the way until you get a node with depth = 0.
-
-    // Store the occupancy grid coordinates into indices.
-
-
-    // After you're done transform the points back into real world
-    // coordinates with getReal(int i, int j)
-
-
-    // Store the transformed points into the path member
-
-
+        for (int index = 0; index < indices.size(); index++)
+        {
+            std::cout << indices[index].x << " " << indices[index].y << "\n";
+        }
+    }*/
 }
 
 // Print out an image of the map we have
