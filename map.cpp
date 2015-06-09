@@ -677,7 +677,7 @@ void Map::AStar(Point p)
                             skip = true;
                         }
                     }
-
+                     
                     // Otherwise, add successor to open list
                     if(!skip)
                     {
@@ -689,6 +689,7 @@ void Map::AStar(Point p)
                     std::cout << "Not valid. Skipping\n";
             }
         }
+    closed.push_back(*q);    
     }
 }
 

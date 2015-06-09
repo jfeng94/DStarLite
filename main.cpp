@@ -99,7 +99,7 @@ int main(int argc, char** argv)
     double min_angle_err = .1;
     double forward_speed = .3;
     double turning_rate = .5;
-    Point p(5,5);
+    Point p(5 ,5);
     printf("Before Map Initialize\n");
     m.init(p);
     printf("Map Initialize\n");
@@ -115,12 +115,10 @@ int main(int argc, char** argv)
     Point Current;
     double Pointing;
     double angle_diff;
-    Current.x = current_pose[0];
-    Current.y = current_pose[1];
-    int current_index = 0;
+       int current_index = 0;
 printf("Initialization Complete\n");
 ros::Rate rate( 15. );
-int k = 0;
+int waypointset = 0;
 std::ofstream out;
 while(ros::ok()){
     // Example of how to print out occupancy matrix
@@ -129,13 +127,16 @@ while(ros::ok()){
     geometry_msgs::Twist mot;
     printf("Twist Initialization Complete\n");
     printf("Scan Number: %d\n", scan_number);
+    Current.x = current_pose[0];
+    Current.y = current_pose[1];
+    printf("Current Position Defined\n");
+    printf("%f, %f\n", Current.x, Current.y);
 if (scan_number == 0){
 printf("Scan Number 0\n");
 }
 else{
    for (int i = 0; i <scan_number; i = i+8){
     Pointing = IndexToAngle(i, scan_number, min_angle, max_angle) + current_pose[2];
-    printf("Pointing: %d, %f\n", i, Pointing);
     // If the readings have not been initialized yet, do nothing 
     if (isnan(Pointing )){
         printf("NAN!!!!!\n");
@@ -146,33 +147,41 @@ else{
     // If the readings HAVE been initialized, include them into the map
       else if ( rangeholder[i] > max_range){
             Point range_edge;
-	    printf("Range: %f\n", rangeholder[i]);
             range_edge.x = max_range * cos( Pointing );
             range_edge.y = max_range * sin( Pointing );
             m.setOpen(Current, range_edge);
-            
+          out.open("test.ppm");
+        out << m;
+        out.close();          
        }
        else {
             Point range_edge;
-	    printf("Range: %f\n", rangeholder[i]);
             range_edge.x = rangeholder[i] * cos( Pointing );
             range_edge.y = rangeholder[i] * sin( Pointing );
             m.setBlocked(Current, range_edge);
-            }
+         out.open("test.ppm");
+        out << m;
+        out.close();           }
        }
  
 
     printf("Assigned Occupancy Grid Elements\n");
+    if (waypointset == 0){
     m.AStar(Current);
     printf("A Star Successful\n");
+    waypointset = 1;
     waypoints = m.getPath();
     printf("Waypoint Copy Successful\n");
+    } 
+    
     
 if (safe_to_move){
-	angle_diff = atan2( waypoints[current_index].y - current_pose[1], waypoints[current_index].x - current_pose[0] ) - current_pose[2];
-if (sqrt( (waypoints[current_index].x - current_pose[0])*(waypoints[current_index].x - current_pose[0]) + (waypoints[current_index].y - current_pose[1])*(waypoints[current_index].y - current_pose[1]) ) < min_reach_err) {
+	angle_diff = atan2( waypoints[current_index-1].y - current_pose[1], waypoints[current_index-1].x - current_pose[0] ) - current_pose[2];
+  printf("Next Waypoint: %f %f\n", waypoints[current_index-1].x, waypoints[current_index-1].y);
+if (sqrt( (waypoints[current_index-1].x - current_pose[0])*(waypoints[current_index-1].x - current_pose[0]) + (waypoints[current_index-1].y - current_pose[1])*(waypoints[current_index-1].y - current_pose[1]) ) < min_reach_err) {
 				std::cout << "Reached waypoint " << current_index << std::endl;
 				current_index = (current_index+1) % waypoints.size();
+        waypointset = 0;
 			} else if (fabs( angle_diff ) > min_angle_err) {
 
 				if (angle_diff > 0) {
@@ -190,14 +199,13 @@ if (sqrt( (waypoints[current_index].x - current_pose[0])*(waypoints[current_inde
         action.publish( mot ); 
         ros::spinOnce();
         rate.sleep();
+
  	std::cout << current_index << " " << waypoints.size() << "\n";
-	if (current_index == waypoints.size() - 1)
+	if (current_index == waypoints.size()-1 )
 	{
-	printf("Reached Goal\n");
+	printf("Reached Goal!\n");
 	return 0;
-//        out.open("test.ppm");
-//        out << m;
-//        out.close();
+
 	}
 }
 
