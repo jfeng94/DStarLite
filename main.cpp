@@ -80,140 +80,181 @@ bool OdomWatcher::get_pose_estimate( double *x )
     }
     return valid_opose;
 }
-void updateMap(Map m, Point Current, double current_angle){
-   
-}
 
 int main(int argc, char** argv)
 {
     printf("Start Main\n");
-    std::cout << "Num args " << argc << "\n";
-    float xmin = atof(argv[1]);
-    float ymin = atof(argv[2]);
-    float xmax = atof(argv[3]);
-    float ymax = atof(argv[4]);
-    float res  = atof(argv[5]);
-    float inputx = atof(argv[6]);
-    float inputy = atof(argv[7]);
-    Point p(inputx, inputy);
-    double pointing, current_pose[3];
+
+    // Handle input
+    if (argc != 9)
+    {
+        std::cerr << "Error! Num args " << argc << "\n"
+                  << "Usage: ./main xmin ymin xmax ymax "
+                  << "res startx starty goalx goaly\n";
+        exit(0);
+    }
+    else
+    {
+        float xmin   = atof(argv[ 1]);
+        float ymin   = atof(argv[ 2]);
+        float xmax   = atof(argv[ 3]);
+        float ymax   = atof(argv[ 4]);
+        float res    = atof(argv[ 5]);
+        float inputx = atof(argv[ 6]);
+        float inputy = atof(argv[ 7]);
+        float theta  = atof(argv[ 8])
+        float goalx  = atof(argv[ 9]);
+        float goaly  = atof(argv[10]);
+    }
+
+    // Set up map
     Map m(xmin, ymin, xmax, ymax, res);
+    Point goal(goalx, goaly);
+    m.init(goal);
+
+    // Initialize map related objects
+    std::vector<Point> waypoints;
+    Point Current;
+    double Pointing;
+    std::ofstream out;
+
+    // Initialize robotic navigation variables
+    double pointing, current_pose[3];
     double min_reach_err = res/2;
     double min_angle_err = .1;
     double forward_speed = 1.3;
     double turning_rate = .5;
-    printf("Before Map Initialize\n");
-    m.init(p);
+    double angle_diff;
+    int current_index = 0;
     int initial = 1;
-    printf("Map Initialize\n");
     safe_to_move = true;
+    int waypointset = 3;
+
+    // Set up navigation 
     ros::init (argc, argv, "Oscar", ros::init_options::AnonymousName );
     ros::NodeHandle nh;
-
     ros::Publisher action = nh.advertise<geometry_msgs::Twist>( "cmd_vel", 1);
     ros::Subscriber lmssub = nh.subscribe( "scan", 10, &laser_cb );
     OdomWatcher pose_watcher( nh );
-    printf("ROS Initialize\n");
-    std::vector<Point> waypoints;
-    Point Current;
-    double Pointing;
-    double angle_diff;
-       int current_index = 0;
-printf("Initialization Complete\n");
-ros::Rate rate( 15. );
-int waypointset = 3;
-std::ofstream out;
-while(ros::ok()){
-    // Example of how to print out occupancy matrix
-    pose_watcher.get_pose_estimate( current_pose );
-    printf("Pose Estimation Complete\n");
-    geometry_msgs::Twist mot;
-    printf("Twist Initialization Complete\n");
-    printf("Scan Number: %d\n", scan_number);
-    Current.x = current_pose[0];
-    Current.y = current_pose[1];
-    printf("Current Position: %f, %f\n", Current.x, Current.y);
-    printf("%f, %f\n", Current.x, Current.y);
-    printf("Range Max: %f\n", max_range);
-if (scan_number == 0){
-printf("Scan Number 0\n");
-}
-else{
-   for (int i = 0; i <scan_number; i = i+6){
-   Point range_edge;
-    Pointing = IndexToAngle(i, scan_number, min_angle, max_angle) + current_pose[2];
-    // If the readings have not been initialized yet, do nothing 
-    if (isnan(Pointing )){
-        printf("NAN!!!!!\n");
-    }
-    if (isnan(rangeholder[i])){
+    ros::Rate rate( 15. );
 
-}
-    // If the readings HAVE been initialized, include them into the map
-      else if ( rangeholder[i] > max_range - .01){
-            range_edge.x = max_range * cos( Pointing ) + Current.x;
-            range_edge.y = max_range * sin( Pointing ) + Current.y;
-            m.setOpen(Current, range_edge);
-       }
-       else {
-            range_edge.x = rangeholder[i] * cos( Pointing ) + Current.x;
-            range_edge.y = rangeholder[i] * sin( Pointing ) + Current.y;
-            m.setBlocked(Current, range_edge);
-           }
-       
-    }
-    out.open("test.ppm");
-    out << m;
-    out.close();          
-        
-    printf("Assigned Occupancy Grid Elements\n");
-    if ((waypointset == 3) || initial == 1){
-    initial = 0;
-    printf("Passing to Current: %f %f\n", Current.x, Current.y);
-    m.AStar(Current);
-    int recent = m.getRecent();
-    if (recent == 1){
-    printf("A Star Successful\n");
-    waypointset = 0;
-    current_index = 1;
-    waypoints = m.getPath();
-    printf("Waypoint Copy Successful\n");
-    printf("Size: %d\n", waypoints.size());   
-    }
-}
-angle_diff = atan2( waypoints[current_index-1].y - current_pose[1], waypoints[current_index-1].x - current_pose[0] ) - current_pose[2];
-  printf("Next Waypoint: %f %f\n", waypoints[current_index-1].x, waypoints[current_index-1].y);
-if (sqrt( (waypoints[current_index-1].x - current_pose[0])*(waypoints[current_index-1].x - current_pose[0]) + (waypoints[current_index-1].y - current_pose[1])*(waypoints[current_index-1].y - current_pose[1]) ) < min_reach_err) {
-				std::cout << "Reached waypoint " << current_index << std::endl;
-				current_index += 1;
-        waypointset += 1;
-			} else if (fabs( angle_diff ) > min_angle_err) {
-
-				if (angle_diff > 0) {
-					mot.angular.z = turning_rate;
-				} else {
-					mot.angular.z = -turning_rate;
-				}
-
-			} else {
-				mot.linear.x = forward_speed;
-			}
-	}
-
+    // While navigating
+    while(ros::ok())
+    {
     
+        pose_watcher.get_pose_estimate( current_pose );
+        geometry_msgs::Twist mot;
+
+        // Update current pose with initial displacement
+        current_pose[0] += startx;
+        current_pose[1] += starty;
+
+        Current.x = current_pose[0];
+        Current.y = current_pose[1];
+
+        // Check rangefinder is returning readings
+        if (scan_number != 0)
+        {
+            for (int i = 0; i <scan_number; i = i+6)
+            {
+                Point range_edge;
+                Pointing = IndexToAngle(i, scan_number, min_angle, max_angle) + current_pose[2];
+                
+                // If the readings have not been initialized yet, do nothing 
+                if (isnan(Pointing ))
+                    printf("NAN!!!!!\n");
+        
+                // Skip if rangeholder value is nan
+                if (isnan(rangeholder[i]))
+                {
+                    continue;
+                }   
+                // If the readings HAVE been initialized, include them into the map
+                else if ( rangeholder[i] > max_range - .01){
+                    range_edge.x = max_range * cos( Pointing ) + Current.x;
+                    range_edge.y = max_range * sin( Pointing ) + Current.y;
+                    m.setOpen(Current, range_edge);
+                }
+
+                else {
+                    range_edge.x = rangeholder[i] * cos( Pointing ) + Current.x;
+                    range_edge.y = rangeholder[i] * sin( Pointing ) + Current.y;
+                    m.setBlocked(Current, range_edge);
+                }
+            }
+
+            out.open("test.ppm");
+            out << m;
+            out.close();          
+                
+            if ((waypointset == 3) || initial == 1)
+            {
+                initial = 0;
+                m.AStar(Current);
+                int recent = m.getRecent();
+
+                // Check if A* was successful
+                if (recent == 1)
+                {
+                    waypointset = 0;
+                    current_index = 1;
+                    waypoints = m.getPath();
+                }
+            }
+
+            // Calculate angle to waypoint.
+            angle_diff = atan2( waypoints[current_index-1].y - current_pose[1],
+                                waypoints[current_index-1].x - current_pose[0] ) -
+                                current_pose[2];
+
+            // Fix angle between -PI and PI
+            angle_diff = atan2( sin(angle_diff), cos(angle_diff) );
+
+            printf("Next Waypoint: %f %f\n", waypoints[current_index-1].x, waypoints[current_index-1].y);
+            // Navigate towards waypoints
+            if (sqrt( (waypoints[current_index-1].x - current_pose[0]) *
+                      (waypoints[current_index-1].x - current_pose[0]) +
+                      (waypoints[current_index-1].y - current_pose[1]) *
+                      (waypoints[current_index-1].y - current_pose[1]) )
+                < min_reach_err)
+            {
+                std::cout << "Reached waypoint " << current_index << std::endl;
+                current_index += 1;
+                waypointset += 1;
+            }
+            else if (fabs( angle_diff ) > min_angle_err)
+            {
+
+                if (angle_diff > 0)
+                {
+                    mot.angular.z = turning_rate;
+                }
+                else
+                {
+                    mot.angular.z = -turning_rate;
+                }
+
+            }
+            else 
+            {
+                mot.linear.x = forward_speed;
+            }
+        }
+
+        
         action.publish( mot ); 
         ros::spinOnce();
         rate.sleep();
 
- 	std::cout << current_index << " " << waypoints.size() << "\n";
-//	if (current_index == waypoints.size()-1 )
-if (sqrt((Current.x - p.x) * (Current.x - p.x) + (Current.y - p.y) * (Current.y - p.y)) < 2*res)
-{
-	printf("Reached Goal!\n");
-	return 0;
+        std::cout << current_index << " " << waypoints.size() << "\n";
 
-	}
-}
-
-
+        // if (current_index == waypoints.size()-1 )
+        if (sqrt( (Current.x - p.x) * (Current.x - p.x) +
+                  (Current.y - p.y) * (Current.y - p.y) )
+            < 2 * res)
+        {
+            printf("Reached Goal!\n");
+            return 0;
+        }
+    }
 }
