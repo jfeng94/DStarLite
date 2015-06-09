@@ -86,6 +86,8 @@ void updateMap(Map m, Point Current, double current_angle){
 
 int main(int argc, char** argv)
 {
+    printf("Start Main\n");
+    std::cout << "Num args " << argc << "\n";
     float xmin = atof(argv[1]);
     float ymin = atof(argv[2]);
     float xmax = atof(argv[3]);
@@ -97,9 +99,10 @@ int main(int argc, char** argv)
     double min_angle_err = .1;
     double forward_speed = .3;
     double turning_rate = .5;
-    Point p(1.5,1.5);
-    
+    Point p(5,5);
+    printf("Before Map Initialize\n");
     m.init(p);
+    printf("Map Initialize\n");
     safe_to_move = true;
     ros::init (argc, argv, "Oscar", ros::init_options::AnonymousName );
     ros::NodeHandle nh;
@@ -107,6 +110,7 @@ int main(int argc, char** argv)
     ros::Publisher action = nh.advertise<geometry_msgs::Twist>( "cmd_vel", 1);
     ros::Subscriber lmssub = nh.subscribe( "scan", 10, &laser_cb );
     OdomWatcher pose_watcher( nh );
+    printf("ROS Initialize\n");
     std::vector<Point> waypoints;
     Point Current;
     double Pointing;
@@ -131,13 +135,18 @@ printf("Scan Number 0\n");
 else{
    for (int i = 0; i <scan_number; i = i+8){
     Pointing = IndexToAngle(i, scan_number, min_angle, max_angle) + current_pose[2];
+    printf("Pointing: %d, %f\n", i, Pointing);
     // If the readings have not been initialized yet, do nothing 
-    if (Pointing != Pointing){
+    if (isnan(Pointing )){
         printf("NAN!!!!!\n");
     }
+    if (isnan(rangeholder[i])){
+
+}
     // If the readings HAVE been initialized, include them into the map
       else if ( rangeholder[i] > max_range){
             Point range_edge;
+	    printf("Range: %f\n", rangeholder[i]);
             range_edge.x = max_range * cos( Pointing );
             range_edge.y = max_range * sin( Pointing );
             m.setOpen(Current, range_edge);
@@ -145,6 +154,7 @@ else{
        }
        else {
             Point range_edge;
+	    printf("Range: %f\n", rangeholder[i]);
             range_edge.x = rangeholder[i] * cos( Pointing );
             range_edge.y = rangeholder[i] * sin( Pointing );
             m.setBlocked(Current, range_edge);
@@ -177,18 +187,19 @@ if (sqrt( (waypoints[current_index].x - current_pose[0])*(waypoints[current_inde
 	}
 }
     
-    action.publish( mot ); 
-    ros::spinOnce();
-    rate.sleep();
-    k++;
-    if (k > 100){
-        break;
-    }
-
+        action.publish( mot ); 
+        ros::spinOnce();
+        rate.sleep();
+ 	std::cout << current_index << " " << waypoints.size() << "\n";
+	if (current_index == waypoints.size() - 1)
+	{
+	printf("Reached Goal\n");
+	return 0;
+//        out.open("test.ppm");
+//        out << m;
+//        out.close();
+	}
 }
 
-            out.open("test.ppm");
-            out << m;
-            out.close();
-    return 0;
+
 }

@@ -472,7 +472,10 @@ void Map::lineStates(std::vector<Point> points)
         y = points[i].y;
         if(x >= 0 && x < Nx &&
            y >= 0 && y < Ny)
+        {
+	    setDist(x, y, -1);
             setState(x, y, Cell::OPEN);
+        }
     }
 }
 
@@ -575,6 +578,7 @@ void Map::AStar(Point p)
     std::cout << "\tWhile queue is not empty...\n";
     while (!open.empty())
     {
+	std::cout << "\t\tNumber of elements in list " << open.size() << "\n";
         std::cout << "\t\tSorting list...\n";
         // Sort the list so that the lowest f is first
         open.sort();
@@ -597,7 +601,10 @@ void Map::AStar(Point p)
             for (int i = x - 1; i < x + 2; i++)
             {
                 std::cout << "\t\t\t" << i << " " << j << "... ";
-                if(i >= 0 && i < Nx && j >= 0 && j < Ny && (i != x || j != y))
+                if(i >= 0 && i < Nx &&
+                   j >= 0 && j < Ny && 
+                   (i != x || j != y) &&
+                   getDist(i, j) < INT_MAX)
                 {
                     std::cout << "Is valid! Setting new idxDepth.\n";
                     idxDepth * s = new idxDepth(i, j, getDist(i, j));
@@ -651,16 +658,24 @@ void Map::AStar(Point p)
                     std::cout << "\t\t\tCheck if a node with same position in open...\n";
                     for (it = open.begin(); it != open.end(); ++it)
                     {
-                        if(it->x == s->x && it->y == s->y && it->f < s->f)
+                        if(it->x == s->x && it->y == s->y && it->f <= s->f)
+			{
+			    std::cout << "Found match in open: " << it->x << " " << it->y << "\n";
+			    std::cout << "it->f " << it->f << " " << "s->f " << s->f << "\n";
                             skip = true;
+			}
                     }
                     // Check if a node with the same position as successor is
                     // in closed, with lower f value
                     std::cout << "\t\t\tCheck if a node with same position in closed...\n";
                     for (it = closed.begin(); it != closed.end(); ++it)
                     {
-                        if(it->x == s->x && it->y == s->y && it->f < s->f)
+                        if(it->x == s->x && it->y == s->y && it->f <= s->f)
+                        {
+                            std::cout << "Found match in closed: " << it->x << " " << it->y << "\n";
+			    std::cout << "it->f " << it->f << " " << "s->f " << s->f << "\n";
                             skip = true;
+                        }
                     }
 
                     // Otherwise, add successor to open list
