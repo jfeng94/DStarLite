@@ -547,43 +547,63 @@ void Map::AStar(Point p)
     Point idx = getIndex(p);
     int x = idx.x;
     int y = idx.y;
+    
+    std::cout << "Running A*...\n";
+    std::cout << "\t" << x << " " << y << "\n";
+
+    // Check to make sure point is within bounds
+    if (x < 0 || x >= Nx || y < 0 || y >= Ny)
+        return;
 
     // Put starting node onto open list
+    std::cout << "\tCreating new idxDepth(" << x << ", " << y << ", " << getDist(x, y) << ")\n";
     idxDepth * start = new idxDepth(x, y, getDist(x, y));
+    std::cout << "\tSetting initial f val...\n";
     start->f = getDist(x, y);
 
+    std::cout << "\tPushing first into list.\n";
     open.push_back(*start);
 
+    std::cout << "\tFreeing start...?\n";
     // Free start
     free(start);
 
     // while open queue is not empty
+    std::cout << "\tWhile queue is not empty...\n";
     while (!open.empty())
     {
+        std::cout << "\t\tSorting list...\n";
         // Sort the list so that the lowest f is first
         open.sort();
 
+        std::cout << "\t\tAllocating new idxDepth ";
         idxDepth * q = new idxDepth();
         *q = open.front();
         x = q->x;
         y = q->y;
+        std::cout << x << " " << y << "\n";
 
+        std::cout << "\t\tPopping list...\n";
         // Pop q off the open list
         open.pop_front();
 
+        std::cout << "\t\tFor each successor...\n";
         // For each successor
         for (int j = y - 1; j < y + 2; j++)
         {
             for (int i = x - 1; i < x + 2; i++)
             {
+                std::cout << "\t\t\t" << i << " " << j << "... ";
                 if(i >= 0 && i < Nx && j >= 0 && j < Ny && (i != x || j != y))
                 {
+                    std::cout << "Is valid! Setting new idxDepth.\n";
                     idxDepth * s = new idxDepth(i, j, getDist(i, j));
                     s->parent = q;
                     
                     // If this is our goal
                     if (s->x == goal_idx.x && s->y == goal_idx.y)
                     {
+                        std::cout << "Reached goal.\n";
                         indices.push_back(Point(s->x, s->y));
                         idxDepth * next = s->parent;
                         while (next)
@@ -600,18 +620,22 @@ void Map::AStar(Point p)
                         return;
                     }
                     
+                    std::cout << "\t\t\tCalculating g... ";
                     float g = getDist(q->x, q->y) + 
                               sqrt((s->x - q->x) * (s->x - q->x) +
                                    (s->y - q->y) * (s->y - q->y)); 
-
+                    std::cout << g << "\n\t\t\tCalculating h... ";
                     float h = sqrt((goal_idx.x - s->x) * (goal_idx.x - s->x) +
                                    (goal_idx.y - s->y) * (goal_idx.y - s->y));
+                    std::cout << h << "\n\t\t\tSetting f... ";
                     s->f = g + h;
+                    std::cout << s->f << "\n";
 
                     bool skip = false;
 
                     // Check if a node with the same position as successor is
                     // in open, with lower f value
+                    std::cout << "\t\t\tCheck if a node with same position in open...\n";
                     for (it = open.begin(); it != open.end(); ++it)
                     {
                         if(it->x == s->x && it->y == s->y && it->f < s->f)
@@ -619,6 +643,7 @@ void Map::AStar(Point p)
                     }
                     // Check if a node with the same position as successor is
                     // in closed, with lower f value
+                    std::cout << "\t\t\tCheck if a node with same position in closed...\n";
                     for (it = closed.begin(); it != closed.end(); ++it)
                     {
                         if(it->x == s->x && it->y == s->y && it->f < s->f)
@@ -628,9 +653,12 @@ void Map::AStar(Point p)
                     // Otherwise, add successor to open list
                     if(!skip)
                     {
+                        std::cout << "\t\t\tSuccessor added.\n";
                         open.push_back(*s);
                     }
                 }
+                else
+                    std::cout << "Not valid. Skipping\n";
             }
         }
     }
