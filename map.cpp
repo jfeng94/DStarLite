@@ -604,19 +604,29 @@ void Map::AStar(Point p)
                     if (s->x == goal_idx.x && s->y == goal_idx.y)
                     {
                         std::cout << "Reached goal.\n";
+                        indices.clear();
+                        std::cout << "Pushing back initial point " << s->x << " " << s->y << "\n";
                         indices.push_back(Point(s->x, s->y));
+                        std::cout << "Looking for parent...\n";
                         idxDepth * next = s->parent;
+                        std::cout << "While parent exists...\n";
                         while (next)
                         {
+                            std::cout << "Pushing back " << next->x << " " << next->y << "\n";
                             indices.push_back(Point(next->x, next->y));
+                            std::cout << "Grabbed next parent\n";
                             next = next->parent;
                         }
 
+                        std::cout << "No more parents.\n";
+                        path.clear();
+                        std::cout << "Translating to real world coordinates\n";
                         for (int n = indices.size() - 1; n >= 0; --n)
                         {
                             Point real = OccupancyToReal(indices[n]);
                             path.push_back(real);
                         }
+                        std::cout << "Done! Returning...\n";
                         return;
                     }
                     
