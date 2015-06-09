@@ -659,11 +659,11 @@ void Map::AStar(Point p)
                     for (it = open.begin(); it != open.end(); ++it)
                     {
                         if(it->x == s->x && it->y == s->y && it->f <= s->f)
-			{
-			    std::cout << "Found match in open: " << it->x << " " << it->y << "\n";
-			    std::cout << "it->f " << it->f << " " << "s->f " << s->f << "\n";
+			            {
+			                std::cout << "Found match in open: " << it->x << " " << it->y << "\n";
+			                std::cout << "it->f " << it->f << " " << "s->f " << s->f << "\n";
                             skip = true;
-			}
+			            }
                     }
                     // Check if a node with the same position as successor is
                     // in closed, with lower f value
@@ -673,11 +673,33 @@ void Map::AStar(Point p)
                         if(it->x == s->x && it->y == s->y && it->f <= s->f)
                         {
                             std::cout << "Found match in closed: " << it->x << " " << it->y << "\n";
-			    std::cout << "it->f " << it->f << " " << "s->f " << s->f << "\n";
+			                std::cout << "it->f " << it->f << " " << "s->f " << s->f << "\n";
                             skip = true;
                         }
                     }
                      
+                    // Check if any neighbors are blocked
+                    std::cout << "\t\t\tCheck if any neighbors are blocked. This is to soft block this cell from path candidacy\n";
+                    for (int n = j - 1; n < j + 2; ++n)
+                    {
+                        for (int m = i - 1; m < 1 + 2; ++m)
+                        {
+                            // Check for cell validty
+                            if (m >= 0 && m < Nx &&
+                                n >= 0 && n < Ny &&
+                                (m != i || n != j)
+                            {
+                                std::cout << "\t\t\t\tObserving cell " << m << " " << n << "\n";
+                                // Get this cell
+                                Cell c = get(m, n);
+                                if (c.state == Cell::BLOCKED)
+                                {
+                                    std::cout << "\t\t\t\tCell is blocked!\n";
+                                    skip = true;
+                                }
+                            }
+                        }
+                    }
                     // Otherwise, add successor to open list
                     if(!skip)
                     {
