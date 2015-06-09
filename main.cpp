@@ -1,18 +1,20 @@
-#include "map.h"
 #include "sensor_msgs/LaserScan.h"
 #include "nav_msgs/Odometry.h"
 #include "geometry_msgs/Twist.h"
+#include "ros/ros.h"
+#include "tf/tf.h"
+
 #include <cmath>
 #include <climits>
 #include <string>
 #include <vector>
 #include <stdlib.h>
 #include <stdio.h>
-#include "ros/ros.h"
-#include "tf/tf.h"
 #include <fstream>
 #include <ostream>
 #include <istream>
+
+#include "map.h"
 
 int min_dist = .5;
 int scan_number;
@@ -170,7 +172,8 @@ int main(int argc, char** argv)
             for (int i = 0; i <scan_number; i = i+6)
             {
                 Point range_edge;
-                Pointing = IndexToAngle(i, scan_number, min_angle, max_angle) + current_pose[2];
+                Pointing = IndexToAngle(i, scan_number, min_angle, max_angle) +
+                           current_pose[2];
                 
                 // If the readings have not been initialized yet, do nothing 
                 if (isnan(Pointing ))
@@ -181,7 +184,7 @@ int main(int argc, char** argv)
                 {
                     continue;
                 }   
-                // If the readings HAVE been initialized, include them into the map
+                // If the readings HAVE initialized, include them into the map
                 else if ( rangeholder[i] > max_range - .01){
                     range_edge.x = max_range * cos( Pointing ) + Current.x;
                     range_edge.y = max_range * sin( Pointing ) + Current.y;
@@ -189,8 +192,8 @@ int main(int argc, char** argv)
                 }
 
                 else {
-                    range_edge.x = rangeholder[i] * cos( Pointing ) + Current.x;
-                    range_edge.y = rangeholder[i] * sin( Pointing ) + Current.y;
+                    range_edge.x = rangeholder[i] * cos( Pointing ) + Current.x
+                    range_edge.y = rangeholder[i] * sin( Pointing ) + Current.y
                     m.setBlocked(Current, range_edge);
                 }
             }
@@ -215,14 +218,15 @@ int main(int argc, char** argv)
             }
 
             // Calculate angle to waypoint.
-            angle_diff = atan2( waypoints[current_index-1].y - current_pose[1],
-                                waypoints[current_index-1].x - current_pose[0] ) -
+            angle_diff = atan2(waypoints[current_index-1].y - current_pose[1],
+                               waypoints[current_index-1].x - current_pose[0]) -
                                 current_pose[2];
 
             // Fix angle between -PI and PI
             angle_diff = atan2( sin(angle_diff), cos(angle_diff) );
 
-            printf("Next Waypoint: %f %f\n", waypoints[current_index-1].x, waypoints[current_index-1].y);
+            printf("Next Waypoint: %f %f\n", waypoints[current_index-1].x,
+                                             waypoints[current_index-1].y);
             // Navigate towards waypoints
             if (sqrt( (waypoints[current_index-1].x - current_pose[0]) *
                       (waypoints[current_index-1].x - current_pose[0]) +
