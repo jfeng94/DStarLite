@@ -682,14 +682,14 @@ void Map::AStar(Point p)
                     std::cout << "\t\t\tCheck if any neighbors are blocked. This is to soft block this cell from path candidacy\n";
                     for (int n = j - 1; n < j + 2; ++n)
                     {
-                        for (int m = i - 1; m < 1 + 2; ++m)
+                        for (int m = i - 1; m < i + 2; ++m)
                         {
+                                std::cout << "\t\t\t\tObserving cell " << m << " " << n << "\n";
                             // Check for cell validty
                             if (m >= 0 && m < Nx &&
                                 n >= 0 && n < Ny &&
-                                (m != i || n != j)
+                                (m != i || n != j))
                             {
-                                std::cout << "\t\t\t\tObserving cell " << m << " " << n << "\n";
                                 // Get this cell
                                 Cell c = get(m, n);
                                 if (c.state == Cell::BLOCKED)
