@@ -608,14 +608,14 @@ void Map::AStar(Point p)
                         std::cout << "Pushing back initial point " << s->x << " " << s->y << "\n";
                         indices.push_back(Point(s->x, s->y));
                         std::cout << "Looking for parent...\n";
-                        idxDepth * next = s->parent;
+                        idxDepth * next = s;
                         std::cout << "While parent exists...\n";
-                        while (next)
+                        while (next->parent)
                         {
-                            std::cout << "Pushing back " << next->x << " " << next->y << "\n";
-                            indices.push_back(Point(next->x, next->y));
                             std::cout << "Grabbed next parent\n";
                             next = next->parent;
+                            std::cout << "Pushing back " << next->x << " " << next->y << "\n";
+                            indices.push_back(Point(next->x, next->y));
                         }
 
                         std::cout << "No more parents.\n";
