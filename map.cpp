@@ -145,7 +145,7 @@ void Map::init(Point p)
     // Set data members for goal;
     goal = p;
     goal_idx = Point(i, j);
-    
+    path.push_back(goal);
     int depth = 0;
     setDist(i, j, depth);
     depth++;
