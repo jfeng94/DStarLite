@@ -57,7 +57,9 @@ class Map
         int maxDist;                   // For aesthetics
         Point goal;
         Point goal_idx;
-            
+        int recent;
+        int *OpenHolder;
+        int *BlockedHolder;
         // Private functions: Should never be needed outside the class
         Point getIndex(Point p);         // Function that reports where a 
                                        // given point snas to on the 
@@ -94,7 +96,9 @@ class Map
         // They use real world points.
         void setBlocked(Point, Point); // These are super important. You need
         void setOpen   (Point, Point); // to update for every rangefinder entry
-
+        void setState(Point);
+        void voteOpen( Point, Point);
+        void voteBlocked( Point, Point);
         // Mutators: Gain access to modifying data members
         // They use occupancy grid world coordinates
         void setState(int, int, Cell::STATE);
@@ -108,7 +112,7 @@ class Map
         Point getReal(int i, int j) {return map[Nx * j + i].p;}
         int getMaxDist() {return maxDist;}
         Cell get(int i, int j) {return map[Nx * j + i];}
-
+        int getRecent() {return recent;}
         // Use this to get the waypoint path that the robot should traverse
         std::vector<Point> getPath() {return path;}
 

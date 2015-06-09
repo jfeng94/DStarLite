@@ -7,7 +7,7 @@
 #include <float.h>
 #include <list>
 #include <cstdlib>
-
+#include <cstdio>
 #include "map.h"
 
 // Helper struct dealing with indices and depths
@@ -104,7 +104,8 @@ Map::Map(float Xmin, float Ymin, float Xmax, float Ymax, float Res)
     Nx = Dx / res + 1;
     Ny = Dy / res + 1;
     float x, y;
-
+    OpenHolder = (int*)malloc(Nx * Ny * sizeof(int));
+    BlockedHolder = (int*)malloc(Nx * Ny * sizeof(int));
     for (int j = 0; j < Ny; j++)
     {
         for (int i = 0; i < Nx; i++)
@@ -148,7 +149,6 @@ void Map::init(Point p)
     // Set data members for goal;
     goal = p;
     goal_idx = Point(i, j);
-    path.push_back(goal);
     int depth = 0;
     setDist(i, j, depth);
     depth++;
@@ -199,6 +199,7 @@ void Map::init(Point p)
         // Remove and move on
         queue.pop();
     }
+
 }
 
 void Map::recalculate()
@@ -438,7 +439,7 @@ std::vector<Point> Map::lineAlgorithm(Point start, Point end)
             error += derr;
 
             // If error rounds up
-            while (error >= 0.5)
+            while (error > 0)
             {
                 // Store point
                 line.push_back(Point(x,y));
@@ -486,10 +487,9 @@ void Map::setBlocked(Point src, Point dst)
     // Get occupancy grid indices
     Point start = getIndex(src);
     Point end   = getIndex(dst);
-
     // Get the line from src to dst
     std::vector<Point> points = lineAlgorithm(start, end);
-    
+    printf("Start Blocked: %f %f\n", start.x, start.y);
     // Update states in the line
     lineStates(points);
 
@@ -504,15 +504,52 @@ void Map::setBlocked(Point src, Point dst)
 
 // Takes the start point of a ray and the end point of a ray and sets all
 // points in between as unblocked and sets destination as open.
+
+void Map::voteOpen(Point src, Point dst)
+{
+    Point start = getIndex(src);
+    Point end = getIndex(dst);
+    std::vector<Point> openvotes = lineAlgorithm(start, end);
+    for (int i = 0; i <openvotes.size(); i++){
+       int a = openvotes[i].x;
+       int b = openvotes[i].y;
+       OpenHolder[Nx * b + a] += 1;
+    }
+}
+
+
+void Map::voteBlocked(Point src, Point dst)
+{
+    Point start = getIndex(src);
+    Point end = getIndex(dst);
+    printf("Voting Block\n");
+    int i = end.x;
+    int j = end.y;
+    BlockedHolder[Nx * j + i] +=10;
+}
+
+void Map::setState(Point p){
+    int i = p.x;
+    int j = p.y;
+        if (OpenHolder[Nx * j + i] > BlockedHolder[Nx * j + i]){
+            setState(i, j, Cell::OPEN); 
+        }
+        else if (BlockedHolder[Nx * j + i] > OpenHolder[Nx * j + i]){
+            setState(i, j, Cell::BLOCKED);
+        }
+        else{
+            setState(i, j, Cell::UNKNOWN);
+        }
+    
+}
+
 void Map::setOpen(Point src, Point dst)
 {
     // Get occupancy grid indices
     Point start = getIndex(src);
     Point end   = getIndex(dst);
-
     // Get the line from src to dst
     std::vector<Point> points = lineAlgorithm(start, end);
-
     // Update states in the line
     lineStates(points);
 
@@ -543,148 +580,150 @@ void Map::setDist(int i, int j, int d)
 
 // TODO: Implement A*
 
-void Map::AStar(Point p)
+void Map::AStar(Point initial)
 {
     // Initialize open and closed list
     std::list<idxDepth>::iterator it;
     std::list<idxDepth> open;
     std::list<idxDepth> closed;
 
-    Point idx = getIndex(p);
+    Point idx = getIndex(initial);
     int x = idx.x;
     int y = idx.y;
     
     std::cout << "Running A*...\n";
     std::cout << "\t" << x << " " << y << "\n";
-
     // Check to make sure point is within bounds
     if (x < 0 || x >= Nx || y < 0 || y >= Ny)
         return;
 
     // Put starting node onto open list
-    std::cout << "\tCreating new idxDepth(" << x << ", " << y << ", " << getDist(x, y) << ")\n";
+//    std::cout << "\tCreating new idxDepth(" << x << ", " << y << ", " << getDist(x, y) << ")\n";
     idxDepth * start = new idxDepth(x, y, getDist(x, y));
-    std::cout << "\tSetting initial f val...\n";
+//    std::cout << "\tSetting initial f val...\n";
     start->f = getDist(x, y);
 
-    std::cout << "\tPushing first into list.\n";
+//    std::cout << "\tPushing first into list.\n";
     open.push_back(*start);
 
-    std::cout << "\tFreeing start...?\n";
+//    std::cout << "\tFreeing start...?\n";
     // Free start
     free(start);
 
     // while open queue is not empty
-    std::cout << "\tWhile queue is not empty...\n";
+//    std::cout << "\tWhile queue is not empty...\n";
     while (!open.empty())
     {
-	std::cout << "\t\tNumber of elements in list " << open.size() << "\n";
-        std::cout << "\t\tSorting list...\n";
+//	std::cout << "\t\tNumber of elements in list " << open.size() << "\n";
+//        std::cout << "\t\tSorting list...\n";
         // Sort the list so that the lowest f is first
         open.sort();
 
-        std::cout << "\t\tAllocating new idxDepth ";
+  //      std::cout << "\t\tAllocating new idxDepth ";
         idxDepth * q = new idxDepth();
         *q = open.front();
         x = q->x;
         y = q->y;
-        std::cout << x << " " << y << "\n";
+  //      std::cout << x << " " << y << "\n";
 
-        std::cout << "\t\tPopping list...\n";
+  //      std::cout << "\t\tPopping list...\n";
         // Pop q off the open list
         open.pop_front();
-
-        std::cout << "\t\tFor each successor...\n";
+        recent = 0;
+  //      std::cout << "\t\tFor each successor...\n";
         // For each successor
         for (int j = y - 1; j < y + 2; j++)
         {
             for (int i = x - 1; i < x + 2; i++)
             {
-                std::cout << "\t\t\t" << i << " " << j << "... ";
+            //    std::cout << "\t\t\t" << i << " " << j << "... ";
                 if(i >= 0 && i < Nx &&
                    j >= 0 && j < Ny && 
                    (i != x || j != y) &&
                    getDist(i, j) < INT_MAX)
                 {
-                    std::cout << "Is valid! Setting new idxDepth.\n";
+              //      std::cout << "Is valid! Setting new idxDepth.\n";
                     idxDepth * s = new idxDepth(i, j, getDist(i, j));
                     s->parent = q;
                     
                     // If this is our goal
                     if (s->x == goal_idx.x && s->y == goal_idx.y)
                     {
-                        std::cout << "Reached goal.\n";
+              //          std::cout << "Reached goal.\n";
                         indices.clear();
-                        std::cout << "Pushing back initial point " << s->x << " " << s->y << "\n";
+              //          std::cout << "Pushing back initial point " << s->x << " " << s->y << "\n";
                         indices.push_back(Point(s->x, s->y));
-                        std::cout << "Looking for parent...\n";
+              //          std::cout << "Looking for parent...\n";
                         idxDepth * next = s;
-                        std::cout << "While parent exists...\n";
+              //          std::cout << "While parent exists...\n";
                         while (next->parent)
                         {
-                            std::cout << "Grabbed next parent\n";
+            //                std::cout << "Grabbed next parent\n";
                             next = next->parent;
-                            std::cout << "Pushing back " << next->x << " " << next->y << "\n";
+            //                std::cout << "Pushing back  " << next->x << " " << next->y << "\n";
                             indices.push_back(Point(next->x, next->y));
                         }
 
-                        std::cout << "No more parents.\n";
+            //            std::cout << "No more parents.\n";
                         path.clear();
-                        std::cout << "Translating to real world coordinates\n";
-                        for (int n = indices.size() - 1; n >= 0; --n)
+            //            std::cout << "Translating to real world coordinates\n";
+                        for (int n = indices.size() - 2; n >= 0; --n)
                         {
                             Point real = OccupancyToReal(indices[n]);
                             path.push_back(real);
+                            printf("Indices: %f %f\n", indices[n].x, indices[n].y);
+                            printf("Path: %f %f\n", real.x, real.y);
                         }
                         std::cout << "Done! Returning...\n";
+                        recent = 1;
                         return;
                     }
                     
-                    std::cout << "\t\t\tCalculating g... ";
+                //    std::cout << "\t\t\tCalculating g... ";
                     float g = getDist(q->x, q->y) + 
                               sqrt((s->x - q->x) * (s->x - q->x) +
                                    (s->y - q->y) * (s->y - q->y)); 
-                    std::cout << g << "\n\t\t\tCalculating h... ";
+                //    std::cout << g << "\n\t\t\tCalculating h... ";
                     float h = sqrt((goal_idx.x - s->x) * (goal_idx.x - s->x) +
                                    (goal_idx.y - s->y) * (goal_idx.y - s->y));
-                    std::cout << h << "\n\t\t\tSetting f... ";
+                //    std::cout << h << "\n\t\t\tSetting f... ";
                     s->f = g + h;
-                    std::cout << s->f << "\n";
+                //   std::cout << s->f << "\n";
 
                     bool skip = false;
 
                     // Check if a node with the same position as successor is
                     // in open, with lower f value
-                    std::cout << "\t\t\tCheck if a node with same position in open...\n";
+            //        std::cout << "\t\t\tCheck if a node with same position in open...\n";
                     for (it = open.begin(); it != open.end(); ++it)
                     {
                         if(it->x == s->x && it->y == s->y && it->f <= s->f)
 			            {
-			                std::cout << "Found match in open: " << it->x << " " << it->y << "\n";
-			                std::cout << "it->f " << it->f << " " << "s->f " << s->f << "\n";
+			      //          std::cout << "Found match in open: " << it->x << " " << it->y << "\n";
+			      //          std::cout << "it->f " << it->f << " " << "s->f " << s->f << "\n";
                             skip = true;
 			            }
                     }
                     // Check if a node with the same position as successor is
                     // in closed, with lower f value
-                    std::cout << "\t\t\tCheck if a node with same position in closed...\n";
+            //        std::cout << "\t\t\tCheck if a node with same position in closed...\n";
                     for (it = closed.begin(); it != closed.end(); ++it)
                     {
                         if(it->x == s->x && it->y == s->y && it->f <= s->f)
                         {
-                            std::cout << "Found match in closed: " << it->x << " " << it->y << "\n";
-			                std::cout << "it->f " << it->f << " " << "s->f " << s->f << "\n";
+            //                std::cout << "Found match in closed: " << it->x << " " << it->y << "\n";
+			      //          std::cout << "it->f " << it->f << " " << "s->f " << s->f << "\n";
                             skip = true;
                         }
                     }
                      
                     // Check if any neighbors are blocked
-                    std::cout << "\t\t\tCheck if any neighbors are blocked. This is to soft block this cell from path candidacy\n";
+            //        std::cout << "\t\t\tCheck if any neighbors are blocked. This is to soft block this cell from path candidacy\n";
                     for (int n = j - 1; n < j + 2; ++n)
                     {
                         for (int m = i - 1; m < i + 2; ++m)
                         {
-                                std::cout << "\t\t\t\tObserving cell " << m << " " << n << "\n";
+            //                    std::cout << "\t\t\t\tObserving cell " << m << " " << n << "\n";
                             // Check for cell validty
                             if (m >= 0 && m < Nx &&
                                 n >= 0 && n < Ny &&
@@ -694,7 +733,7 @@ void Map::AStar(Point p)
                                 Cell c = get(m, n);
                                 if (c.state == Cell::BLOCKED)
                                 {
-                                    std::cout << "\t\t\t\tCell is blocked!\n";
+            //                        std::cout << "\t\t\t\tCell is blocked!\n";
                                     skip = true;
                                 }
                             }
@@ -703,15 +742,20 @@ void Map::AStar(Point p)
                     // Otherwise, add successor to open list
                     if(!skip)
                     {
-                        std::cout << "\t\t\tSuccessor added.\n";
+            //            std::cout << "\t\t\tSuccessor added.\n";
                         open.push_back(*s);
                     }
                 }
-                else
-                    std::cout << "Not valid. Skipping\n";
+                else{
+                }
+            //        std::cout << "Not valid. Skipping\n";
             }
         }
     closed.push_back(*q);    
+    }
+    printf("Path Size: %d\n", path.size());
+    for (int i = 0; i < path.size(); i++){
+        printf("Path: %f %f\n", path[i].x, path[i].y);
     }
 }
 
