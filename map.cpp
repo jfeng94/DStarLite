@@ -23,6 +23,7 @@ struct idxDepth
         y = 0;
         f = FLT_MAX;
         depth = INT_MAX;
+        parent = NULL;
     }
     idxDepth(int X, int Y, int d)
     {
@@ -30,6 +31,7 @@ struct idxDepth
         y = Y;
         f = FLT_MAX;
         depth = d;
+        parent = NULL;
     }
     idxDepth(Point p, int d)
     {
@@ -37,6 +39,7 @@ struct idxDepth
         y = p.y;
         f = FLT_MAX;
         depth = d;
+        parent = NULL;
     }
 
     idxDepth operator=(idxDepth a)
