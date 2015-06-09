@@ -85,6 +85,17 @@ int main(int argc, char** argv)
 {
     printf("Start Main\n");
 
+    float xmin;   
+    float ymin;   
+    float xmax;   
+    float ymax;   
+    float res;    
+    float inputx; 
+    float inputy; 
+    float theta;  
+    float goalx;  
+    float goaly;
+
     // Handle input
     if (argc != 9)
     {
@@ -95,16 +106,16 @@ int main(int argc, char** argv)
     }
     else
     {
-        float xmin   = atof(argv[ 1]);
-        float ymin   = atof(argv[ 2]);
-        float xmax   = atof(argv[ 3]);
-        float ymax   = atof(argv[ 4]);
-        float res    = atof(argv[ 5]);
-        float inputx = atof(argv[ 6]);
-        float inputy = atof(argv[ 7]);
-        float theta  = atof(argv[ 8])
-        float goalx  = atof(argv[ 9]);
-        float goaly  = atof(argv[10]);
+        xmin   = atof(argv[ 1]);
+        ymin   = atof(argv[ 2]);
+        xmax   = atof(argv[ 3]);
+        ymax   = atof(argv[ 4]);
+        res    = atof(argv[ 5]);
+        inputx = atof(argv[ 6]);
+        inputy = atof(argv[ 7]);
+        theta  = atof(argv[ 8]);
+        goalx  = atof(argv[ 9]);
+        goaly  = atof(argv[10]);
     }
 
     // Set up map
@@ -146,8 +157,9 @@ int main(int argc, char** argv)
         geometry_msgs::Twist mot;
 
         // Update current pose with initial displacement
-        current_pose[0] += startx;
-        current_pose[1] += starty;
+        current_pose[0] += inputx;
+        current_pose[1] += inputy;
+        current_pose[2] += theta;
 
         Current.x = current_pose[0];
         Current.y = current_pose[1];
@@ -249,8 +261,8 @@ int main(int argc, char** argv)
         std::cout << current_index << " " << waypoints.size() << "\n";
 
         // if (current_index == waypoints.size()-1 )
-        if (sqrt( (Current.x - p.x) * (Current.x - p.x) +
-                  (Current.y - p.y) * (Current.y - p.y) )
+        if (sqrt( (Current.x - goal.x) * (Current.x - goal.x) +
+                  (Current.y - goal.y) * (Current.y - goal.y) )
             < 2 * res)
         {
             printf("Reached Goal!\n");
