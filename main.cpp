@@ -99,11 +99,11 @@ int main(int argc, char** argv)
     float goaly;
 
     // Handle input
-    if (argc != 9)
+    if (argc != 11)
     {
         std::cerr << "Error! Num args " << argc << "\n"
                   << "Usage: ./main xmin ymin xmax ymax "
-                  << "res startx starty goalx goaly\n";
+                  << "res startx starty theta goalx goaly\n";
         exit(0);
     }
     else
@@ -192,8 +192,8 @@ int main(int argc, char** argv)
                 }
 
                 else {
-                    range_edge.x = rangeholder[i] * cos( Pointing ) + Current.x
-                    range_edge.y = rangeholder[i] * sin( Pointing ) + Current.y
+                    range_edge.x = rangeholder[i] * cos( Pointing ) + Current.x;
+                    range_edge.y = rangeholder[i] * sin( Pointing ) + Current.y;
                     m.setBlocked(Current, range_edge);
                 }
             }
